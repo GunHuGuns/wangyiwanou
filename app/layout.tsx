@@ -1,35 +1,36 @@
 import { Analytics } from '@vercel/analytics/next'
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Nunito } from 'next/font/google'
 import './globals.css'
+import { AppProvider } from '@/lib/contexts/app-context'
 
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const nunito = Nunito({ 
   subsets: ['latin'],
+  variable: '--font-nunito',
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: '毛绒精灵 - 智能玩偶控制',
+  description: '与你的毛绒玩偶对话、旅行、交友的智能APP',
   generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: '毛绒精灵',
   },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#FF9B8E',
 }
 
 export default function RootLayout({
@@ -38,9 +39,20 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="font-sans antialiased">
-        {children}
+    <html lang="zh-CN" className={nunito.variable}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body className="font-sans antialiased bg-background">
+        <AppProvider>
+          <div className="mx-auto max-w-md min-h-screen bg-background">
+            {children}
+          </div>
+        </AppProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

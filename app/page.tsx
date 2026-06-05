@@ -1,36 +1,53 @@
-export default function Page() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-6 text-neutral-400">
-      <div className="flex w-full max-w-md flex-col items-start gap-8">
-        <svg
-          fill="currentColor"
-          viewBox="0 0 147 70"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          className="size-10 text-white"
-        >
-          <path d="M56 50.2031V14H70V60.1562C70 65.5928 65.5928 70 60.1562 70C57.5605 70 54.9982 68.9992 53.1562 67.1573L0 14H19.7969L56 50.2031Z" />
-          <path d="M147 56H133V23.9531L100.953 56H133V70H96.6875C85.8144 70 77 61.1856 77 50.3125V14H91V46.1562L123.156 14H91V0H127.312C138.186 0 147 8.81439 147 19.6875V56Z" />
-        </svg>
+"use client"
 
-        <div className="space-y-3">
-          <h1 className="text-balance text-2xl font-semibold tracking-tight text-white">
-            To get started, describe what you want to build.
-          </h1>
-          <p className="text-pretty text-sm leading-relaxed text-neutral-500">
-            This is the default page for a fresh v0 project. Open the prompt and
-            tell v0 what to create, or browse the{' '}
-            <a
-              href="https://v0.app/templates"
-              target="_blank"
-              rel="noreferrer"
-              className="text-neutral-300 underline underline-offset-4 hover:text-white"
-            >
-              Community
-            </a>{' '}
-            for inspiration.
-          </p>
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Sparkles } from "lucide-react"
+
+export default function SplashPage() {
+  const router = useRouter()
+  const [isAnimating, setIsAnimating] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAnimating(false)
+      router.push("/connect")
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [router])
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary/20 via-background to-background p-6">
+      {/* Logo动画 */}
+      <div className={`flex flex-col items-center gap-6 ${isAnimating ? "animate-pulse" : ""}`}>
+        <div className="relative">
+          <div className="w-32 h-32 rounded-full bg-primary/20 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-primary/30 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white text-3xl">
+                <Sparkles className="w-8 h-8" />
+              </div>
+            </div>
+          </div>
+          {/* 装饰光点 */}
+          <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-secondary animate-bounce" />
+          <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-accent animate-bounce delay-100" />
+          <div className="absolute top-1/2 -right-4 w-2 h-2 rounded-full bg-primary animate-bounce delay-200" />
         </div>
+
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-foreground mb-2">毛绒精灵</h1>
+          <p className="text-muted-foreground">与你的玩偶开启奇妙旅程</p>
+        </div>
+      </div>
+
+      {/* 加载提示 */}
+      <div className="absolute bottom-20 flex flex-col items-center gap-3">
+        <div className="flex gap-1">
+          <div className="w-2 h-2 rounded-full bg-primary animate-bounce" />
+          <div className="w-2 h-2 rounded-full bg-primary animate-bounce delay-100" />
+          <div className="w-2 h-2 rounded-full bg-primary animate-bounce delay-200" />
+        </div>
+        <p className="text-sm text-muted-foreground">正在启动...</p>
       </div>
     </main>
   )
