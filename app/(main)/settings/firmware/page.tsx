@@ -57,7 +57,9 @@ export default function FirmwarePage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold">小棉花</h2>
-              <p className="text-sm text-muted-foreground">当前固件版本 v{CURRENT_VERSION}</p>
+              <p className="text-sm text-muted-foreground">
+                当前固件版本 v{stage === "done" ? LATEST_VERSION : CURRENT_VERSION}
+              </p>
             </div>
 
             {stage === "done" ? (
