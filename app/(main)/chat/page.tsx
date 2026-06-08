@@ -151,6 +151,15 @@ export default function ChatPage() {
         }
       />
 
+      {/* 设备异常时的提示横幅 */}
+      {loaded && !usable && (
+        <div className="px-4 pt-3">
+          <div className="max-w-lg mx-auto">
+            <DeviceStatusBanner device={device} feature="和玩偶对话" />
+          </div>
+        </div>
+      )}
+
       {/* 消息列表 */}
       <ScrollArea ref={scrollRef} className="flex-1 px-4 py-4">
         <div className="max-w-lg mx-auto space-y-4">
