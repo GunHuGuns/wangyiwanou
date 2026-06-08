@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { 
   Heart, 
   Camera, 
@@ -21,7 +22,8 @@ import {
   Image as ImageIcon,
   Share2,
   Sparkles,
-  Check
+  Check,
+  Search
 } from "lucide-react"
 import { mockFriends } from "@/lib/mock-data"
 import { useApp } from "@/lib/contexts/app-context"
@@ -34,6 +36,14 @@ const destinationOptions = [
   { id: "xian", name: "西安", desc: "千年古都，兵马俑" },
   { id: "lijiang", name: "丽江", desc: "古城慢生活，雪山相伴" },
   { id: "iceland", name: "冰岛", desc: "极光与冰川的奇境" },
+  { id: "chengdu", name: "成都", desc: "悠闲慢生活，熊猫之乡" },
+  { id: "xizang", name: "西藏", desc: "雪域高原，布达拉宫" },
+  { id: "hangzhou", name: "杭州", desc: "上有天堂，下有苏杭" },
+  { id: "xiamen", name: "厦门", desc: "海岛小清新，鼓浪屿" },
+  { id: "newyork", name: "纽约", desc: "不夜之城，自由女神" },
+  { id: "switzerland", name: "瑞士", desc: "阿尔卑斯雪山小镇" },
+  { id: "kyoto", name: "京都", desc: "古寺枫红，和风古韵" },
+  { id: "dali", name: "大理", desc: "苍山洱海，风花雪月" },
 ]
 
 const cpTravelMemories = [
@@ -65,15 +75,30 @@ function CPTravelContent() {
   const [selectedDest, setSelectedDest] = useState<string | null>(null)
   const [chosenDest, setChosenDest] = useState<(typeof destinationOptions)[number] | null>(null)
   const [memories, setMemories] = useState(cpTravelMemories)
+  const [destSearch, setDestSearch] = useState("")
+
+  const keyword = destSearch.trim().toLowerCase()
+  const filteredDestinations = keyword
+    ? destinationOptions.filter(
+        (d) =>
+          d.name.toLowerCase().includes(keyword) ||
+          d.desc.toLowerCase().includes(keyword),
+      )
+    : destinationOptions
 
   const confirmDestination = () => {
     if (!selectedDest) {
       toast.error("请先选择一个目的地")
       return
     }
-    const dest = destinationOptions.find((d) => d.id === selectedDest) || null
+    const dest =
+      destinationOptions.find((d) => d.id === selectedDest) ||
+      (selectedDest.startsWith("custom-")
+        ? { id: selectedDest, name: destSearch.trim(), desc: "我们的专属目的地" }
+        : null)
     setChosenDest(dest)
     setDestOpen(false)
+    setDestSearch("")
     toast.success(`已选择目的地：${dest?.name}，点击生成合照开启旅程`)
   }
 
@@ -250,7 +275,10 @@ function CPTravelContent() {
         open={destOpen}
         onOpenChange={(o) => {
           setDestOpen(o)
-          if (!o && !chosenDest) setSelectedDest(null)
+          if (!o) {
+            setDestSearch("")
+            if (!chosenDest) setSelectedDest(null)
+          }
         }}
       >
         <DialogContent className="max-w-sm mx-4 rounded-2xl">
@@ -260,8 +288,20 @@ function CPTravelContent() {
               和 {friend.name} 一起去哪里呢？
             </DialogDescription>
           </DialogHeader>
+
+          {/* 搜索目的地 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              value={destSearch}
+              onChange={(e) => setDestSearch(e.target.value)}
+              placeholder="搜索目的地，如 巴黎、海岛、雪山"
+              className="pl-9 rounded-xl"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3 py-2 max-h-72 overflow-y-auto">
-            {destinationOptions.map((dest) => (
+            {filteredDestinations.map((dest) => (
               <button
                 key={dest.id}
                 onClick={() => setSelectedDest(dest.id)}
@@ -281,7 +321,33 @@ function CPTravelContent() {
                 <span className="text-xs text-muted-foreground">{dest.desc}</span>
               </button>
             ))}
+
+            {/* 无匹配时，支持使用搜索词作为自定义目的地 */}
+            {filteredDestinations.length === 0 && keyword && (
+              <button
+                onClick={() => setSelectedDest(`custom-${keyword}`)}
+                className={`col-span-2 flex items-center gap-2 p-3 rounded-2xl border-2 text-left transition-all ${
+                  selectedDest === `custom-${keyword}`
+                    ? "border-primary bg-primary/10"
+                    : "border-dashed border-border bg-card hover:border-primary/40"
+                }`}
+              >
+                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="size-4 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    去「{destSearch.trim()}」
+                  </p>
+                  <p className="text-xs text-muted-foreground">使用自定义目的地</p>
+                </div>
+                {selectedDest === `custom-${keyword}` && (
+                  <Check className="size-4 text-primary" />
+                )}
+              </button>
+            )}
           </div>
+
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button
               onClick={confirmDestination}

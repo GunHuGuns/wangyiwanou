@@ -327,8 +327,10 @@ export default function ChatPage() {
                 <button
                   onPointerDown={(e) => {
                     e.preventDefault()
-                    e.currentTarget.setPointerCapture(e.pointerId)
                     startRecording()
+                    try {
+                      e.currentTarget.setPointerCapture(e.pointerId)
+                    } catch {}
                   }}
                   onPointerUp={(e) => {
                     e.preventDefault()
