@@ -137,6 +137,7 @@ export const mockFriends: Friend[] = [
     intimacy: 85,
     lastMeet: "昨天",
     isCp: true,
+    friendType: "lover",
   },
   {
     id: "2",
@@ -146,6 +147,7 @@ export const mockFriends: Friend[] = [
     intimacy: 60,
     lastMeet: "3天前",
     isCp: false,
+    friendType: "friend",
   },
   {
     id: "3",
@@ -155,6 +157,7 @@ export const mockFriends: Friend[] = [
     intimacy: 45,
     lastMeet: "1周前",
     isCp: false,
+    friendType: "family",
   },
 ]
 
@@ -244,7 +247,7 @@ export const mockTravelPlans: TravelPlan[] = [
         type: "food",
         name: "品尝西湖醋鱼",
         description: "在楼外楼品尝正宗的杭帮菜",
-        location: "楼外楼餐厅",
+        location: "楼外楼餐��",
       },
       {
         id: "a3",

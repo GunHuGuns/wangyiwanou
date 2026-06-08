@@ -35,7 +35,7 @@ export default function AuthPage() {
       setIsSubmitting(false)
       if (result.ok) {
         toast.success(mode === "login" ? "登录成功" : "注册成功，欢迎加入")
-        router.push("/connect")
+        router.push("/home")
       } else {
         toast.error(result.error || "操作失败")
       }

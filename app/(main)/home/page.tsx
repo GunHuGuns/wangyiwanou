@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import {
   Battery,
+  BatteryLow,
   Wifi,
+  WifiOff,
   MessageCircle,
   Map,
   Users,
@@ -15,10 +16,12 @@ import {
   Sparkles,
   ChevronRight,
   Volume2,
+  PlugZap,
 } from 'lucide-react'
-import { PlushDevice } from '@/lib/types'
 import { plushTypeIcons } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
+import { useDevice } from '@/lib/hooks/use-device'
+import { DeviceStatusBanner } from '@/components/common/device-status-banner'
 
 const quickActions = [
   {
@@ -53,35 +56,23 @@ const quickActions = [
 
 const moreFeatures = [
   { href: '/alarm', icon: Clock, label: '闹钟', badge: '3个' },
-  { href: '/settings/device', icon: Volume2, label: '音量调节' },
   { href: '/settings/character', icon: Sparkles, label: '角色切换' },
 ]
 
 export default function HomePage() {
-  const router = useRouter()
-  const [device, setDevice] = useState<PlushDevice | null>(null)
+  const { device, loaded } = useDevice()
   const [greeting, setGreeting] = useState('')
 
   useEffect(() => {
-    // Get connected device
-    const deviceData = localStorage.getItem('connectedDevice')
-    if (deviceData) {
-      setDevice(JSON.parse(deviceData))
-    } else {
-      // Redirect to connect if no device
-      router.push('/connect')
-    }
-
-    // Set greeting based on time
     const hour = new Date().getHours()
     if (hour < 6) setGreeting('夜深了')
     else if (hour < 12) setGreeting('早上好')
     else if (hour < 14) setGreeting('中午好')
     else if (hour < 18) setGreeting('下午好')
     else setGreeting('晚上好')
-  }, [router])
+  }, [])
 
-  if (!device) {
+  if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -89,51 +80,100 @@ export default function HomePage() {
     )
   }
 
+  const isLowBattery = device?.status === 'low-battery'
+  const isOffline = device?.status === 'disconnected' || device?.status === 'bluetooth-off'
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
       {/* Header */}
       <div className="px-4 pt-6 pb-4">
         <div className="max-w-lg mx-auto">
           <p className="text-muted-foreground text-sm">{greeting}</p>
-          <h1 className="text-2xl font-bold">和{device.name}一起玩吧</h1>
+          <h1 className="text-2xl font-bold">
+            {device ? `和${device.name}一起玩吧` : '欢迎回来'}
+          </h1>
         </div>
       </div>
 
-      {/* Device Status Card */}
+      {/* Device Status Card / 未连接占位 */}
       <div className="px-4 mb-6">
-        <div className="max-w-lg mx-auto">
-          <Card className="p-5 bg-gradient-to-br from-card to-cute-cream/30 border-0 shadow-lg">
-            <div className="flex items-center gap-4">
-              {/* Device Avatar */}
-              <div className="relative">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-cute-orange/20 flex items-center justify-center">
-                  <span className="text-5xl animate-bounce-soft">
-                    {plushTypeIcons[device.type]}
-                  </span>
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-cute-mint flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-white" />
-                </div>
-              </div>
-
-              {/* Device Info */}
-              <div className="flex-1">
-                <h2 className="text-lg font-bold mb-1">{device.name}</h2>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Battery className="w-4 h-4" />
-                    <span>{device.batteryLevel}%</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Wifi className="w-4 h-4" />
-                    <span className="truncate max-w-[80px]">
-                      {device.wifiSSID || '已连接'}
+        <div className="max-w-lg mx-auto space-y-3">
+          {device ? (
+            <Card className="p-5 bg-gradient-to-br from-card to-cute-cream/30 border-0 shadow-lg">
+              <div className="flex items-center gap-4">
+                {/* Device Avatar */}
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-cute-orange/20 flex items-center justify-center">
+                    <span className="text-5xl animate-bounce-soft">
+                      {plushTypeIcons[device.type]}
                     </span>
                   </div>
+                  <div
+                    className={cn(
+                      'absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center',
+                      isOffline ? 'bg-muted-foreground/40' : 'bg-cute-mint'
+                    )}
+                  >
+                    <div className="w-3 h-3 rounded-full bg-white" />
+                  </div>
+                </div>
+
+                {/* Device Info */}
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold mb-1">{device.name}</h2>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      {isLowBattery ? (
+                        <BatteryLow className="w-4 h-4 text-destructive" />
+                      ) : (
+                        <Battery className="w-4 h-4" />
+                      )}
+                      <span className={cn(isLowBattery && 'text-destructive')}>
+                        {device.batteryLevel}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {isOffline ? (
+                        <>
+                          <WifiOff className="w-4 h-4 text-destructive" />
+                          <span className="text-destructive">离线</span>
+                        </>
+                      ) : (
+                        <>
+                          <Wifi className="w-4 h-4" />
+                          <span className="truncate max-w-[80px]">
+                            {device.wifiSSID || '已连接'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          ) : (
+            <Card className="p-6 bg-gradient-to-br from-card to-cute-cream/30 border-0 shadow-lg text-center">
+              <div className="w-16 h-16 mx-auto rounded-3xl bg-primary/10 flex items-center justify-center mb-3">
+                <PlugZap className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-lg font-bold mb-1">还没有连接玩偶</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                连接你的毛绒玩偶，开启对话、旅行和交友
+              </p>
+              <Link
+                href="/connect"
+                className="inline-flex items-center justify-center gap-1 px-5 py-2.5 rounded-2xl bg-primary text-primary-foreground text-sm font-medium"
+              >
+                连接玩偶
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </Card>
+          )}
+
+          {/* 异常状态横幅（断连/蓝牙关闭/低电量） */}
+          {device && device.status !== 'connected' && (
+            <DeviceStatusBanner device={device} />
+          )}
         </div>
       </div>
 
@@ -206,7 +246,9 @@ export default function HomePage() {
               <div>
                 <h4 className="font-semibold mb-1">今日小贴士</h4>
                 <p className="text-sm text-muted-foreground">
-                  试试和{device.name}聊聊你今天的心情，它会记住你分享的一切，并在日记中为你记录下来哦~
+                  {device
+                    ? `试试和${device.name}聊聊你今天的心情，它会记住你分享的一切，并在日记中为你记录下来哦~`
+                    : '连接玩偶后，它会陪你聊天、记录心情，还能带你云端旅行哦~'}
                 </p>
               </div>
             </div>

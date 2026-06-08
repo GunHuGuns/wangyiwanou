@@ -14,7 +14,7 @@ export default function SplashPage() {
     const timer = setTimeout(() => {
       setIsAnimating(false)
       if (isLoading) return
-      router.push(user ? "/connect" : "/auth")
+      router.push(user ? "/home" : "/auth")
     }, 2500)
     return () => clearTimeout(timer)
   }, [router, user, isLoading])

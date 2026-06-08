@@ -71,6 +71,9 @@ export interface Diary {
 // 日记条目别名（与页面命名保持一致）
 export type DiaryEntry = Diary
 
+// 好友关系类型
+export type FriendType = "lover" | "friend" | "family"
+
 // 好友类型
 export interface Friend {
   id: string
@@ -80,6 +83,10 @@ export interface Friend {
   intimacy: number
   lastMeet: string
   isCp: boolean
+  // 好友关系类型：情侣 / 朋友 / 亲人
+  friendType?: FriendType
+  // 碰一碰申请状态：pending 表示等待对方通过
+  pending?: boolean
 }
 
 // 旅行明信片类型

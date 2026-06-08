@@ -6,9 +6,9 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, Sparkles, Heart, Wifi, UserPlus, Check, X } from "lucide-react"
-import { mockFriends } from "@/lib/mock-data"
-import type { Friend } from "@/lib/types"
+import { Users, Sparkles, Heart, Wifi, UserPlus, Check, X, Clock } from "lucide-react"
+import { useFriends, friendTypeLabels } from "@/lib/hooks/use-friends"
+import type { Friend, FriendType } from "@/lib/types"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -19,6 +19,11 @@ interface FriendRequest {
   ownerName: string
   message: string
   time: string
+}
+
+interface NearbyToy extends Friend {
+  // 本地状态：是否已发起申请（等待对方通过）
+  requested?: boolean
 }
 
 const initialRequests: FriendRequest[] = [
@@ -40,12 +45,21 @@ const initialRequests: FriendRequest[] = [
   },
 ]
 
+const friendTypeStyles: Record<FriendType, string> = {
+  lover: "bg-secondary/20 text-secondary",
+  friend: "bg-primary/15 text-primary",
+  family: "bg-cute-mint/30 text-cute-mint",
+}
+
 export default function FriendsPage() {
+  const { friends, addFriend, updateFriend } = useFriends()
   const [isSearching, setIsSearching] = useState(false)
-  const [nearbyToys, setNearbyToys] = useState<Friend[]>([])
-  const [addedIds, setAddedIds] = useState<string[]>([])
-  const [friends, setFriends] = useState<Friend[]>(mockFriends)
+  const [nearbyToys, setNearbyToys] = useState<NearbyToy[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>(initialRequests)
+
+  // 已通过的好友（排除等待对方通过的申请）
+  const acceptedFriends = friends.filter((f) => !f.pending)
+  const pendingFriends = friends.filter((f) => f.pending)
 
   const searchNearby = () => {
     setIsSearching(true)
@@ -66,26 +80,33 @@ export default function FriendsPage() {
     }, 2000)
   }
 
-  const addNearby = (toy: Friend) => {
-    if (addedIds.includes(toy.id)) return
-    setAddedIds((prev) => [...prev, toy.id])
-    setFriends((prev) => [...prev, toy])
-    toast.success(`已添加 ${toy.name} 为好友`)
+  // 碰一碰发起申请：进入等待对方通过状态
+  const requestNearby = (toy: NearbyToy) => {
+    if (toy.requested) return
+    setNearbyToys((prev) =>
+      prev.map((t) => (t.id === toy.id ? { ...t, requested: true } : t))
+    )
+    addFriend({
+      ...toy,
+      requested: undefined,
+      pending: true,
+      friendType: "friend",
+      lastMeet: "刚刚",
+    } as Friend)
+    toast.success(`已向 ${toy.name} 发送好友申请，等待对方通过`)
   }
 
   const acceptRequest = (req: FriendRequest) => {
-    setFriends((prev) => [
-      ...prev,
-      {
-        id: req.id,
-        name: req.name,
-        avatar: req.avatar,
-        ownerName: req.ownerName,
-        intimacy: 10,
-        lastMeet: "刚刚",
-        isCp: false,
-      },
-    ])
+    addFriend({
+      id: req.id,
+      name: req.name,
+      avatar: req.avatar,
+      ownerName: req.ownerName,
+      intimacy: 10,
+      lastMeet: "刚刚",
+      isCp: false,
+      friendType: "friend",
+    })
     setRequests((prev) => prev.filter((r) => r.id !== req.id))
     toast.success(`已通过 ${req.name} 的好友请求`)
   }
@@ -118,14 +139,14 @@ export default function FriendsPage() {
             {/* 好友统计 */}
             <div className="grid grid-cols-3 gap-3">
               <Card className="p-3 text-center bg-card">
-                <div className="text-2xl font-bold text-primary">{friends.length}</div>
+                <div className="text-2xl font-bold text-primary">{acceptedFriends.length}</div>
                 <div className="text-xs text-muted-foreground">好友总数</div>
               </Card>
               <Card className="p-3 text-center bg-card">
                 <div className="text-2xl font-bold text-secondary">
-                  {friends.filter((f) => f.isCp).length}
+                  {acceptedFriends.filter((f) => f.friendType === "lover").length}
                 </div>
-                <div className="text-xs text-muted-foreground">CP好友</div>
+                <div className="text-xs text-muted-foreground">情侣好友</div>
               </Card>
               <Card className="p-3 text-center bg-card">
                 <div className="text-2xl font-bold text-accent">12</div>
@@ -133,9 +154,36 @@ export default function FriendsPage() {
               </Card>
             </div>
 
+            {/* 等待对方通过的申请 */}
+            {pendingFriends.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-1">等待对方通过</h3>
+                {pendingFriends.map((friend) => (
+                  <Card key={friend.id} className="p-4 bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-12 border-2 border-muted">
+                        <AvatarImage src={friend.avatar} />
+                        <AvatarFallback className="bg-muted text-muted-foreground">
+                          {friend.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <span className="font-medium text-foreground">{friend.name}</span>
+                        <p className="text-sm text-muted-foreground">{friend.ownerName}的玩偶</p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="size-3.5" />
+                        等待通过
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
             {/* 好友列表 */}
             <div className="space-y-3">
-              {friends.map((friend) => (
+              {acceptedFriends.map((friend) => (
                 <Link key={friend.id} href={`/friends/${friend.id}`}>
                   <Card className="p-4 bg-card hover:bg-card/80 transition-colors">
                     <div className="flex items-center gap-3">
@@ -146,7 +194,7 @@ export default function FriendsPage() {
                             {friend.name[0]}
                           </AvatarFallback>
                         </Avatar>
-                        {friend.isCp && (
+                        {friend.friendType === "lover" && (
                           <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-secondary flex items-center justify-center">
                             <Heart className="size-3 text-white fill-white" />
                           </div>
@@ -155,9 +203,11 @@ export default function FriendsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{friend.name}</span>
-                          {friend.isCp && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/20 text-secondary">
-                              CP
+                          {friend.friendType && (
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full ${friendTypeStyles[friend.friendType]}`}
+                            >
+                              {friendTypeLabels[friend.friendType]}
                             </span>
                           )}
                         </div>
@@ -261,7 +311,7 @@ export default function FriendsPage() {
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground">碰一碰交友</h3>
                   <p className="text-sm text-muted-foreground">
-                    两只玩偶靠近碰一碰，即可成为好友
+                    两只玩偶靠近碰一碰，发送申请后等待对方通过
                   </p>
                 </div>
               </div>
@@ -295,46 +345,44 @@ export default function FriendsPage() {
                   发现新朋友
                 </h3>
                 <div className="space-y-3">
-                  {nearbyToys.map((toy) => {
-                    const added = addedIds.includes(toy.id)
-                    return (
-                      <Card key={toy.id} className="p-4 bg-card border-primary/30">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-14 border-2 border-primary/30">
-                            <AvatarImage src={toy.avatar} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                              {toy.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="font-medium text-foreground">{toy.name}</div>
-                            <p className="text-sm text-muted-foreground">
-                              {toy.ownerName}的玩偶
-                            </p>
-                            <p className="text-xs text-secondary mt-1">{toy.lastMeet}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            disabled={added}
-                            onClick={() => addNearby(toy)}
-                            className="bg-primary hover:bg-primary/90"
-                          >
-                            {added ? (
-                              <>
-                                <Check className="size-4 mr-1" />
-                                已添加
-                              </>
-                            ) : (
-                              <>
-                                <Heart className="size-4 mr-1" />
-                                加好友
-                              </>
-                            )}
-                          </Button>
+                  {nearbyToys.map((toy) => (
+                    <Card key={toy.id} className="p-4 bg-card border-primary/30">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-14 border-2 border-primary/30">
+                          <AvatarImage src={toy.avatar} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                            {toy.name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground">{toy.name}</div>
+                          <p className="text-sm text-muted-foreground">
+                            {toy.ownerName}的玩偶
+                          </p>
+                          <p className="text-xs text-secondary mt-1">{toy.lastMeet}</p>
                         </div>
-                      </Card>
-                    )
-                  })}
+                        <Button
+                          size="sm"
+                          disabled={toy.requested}
+                          variant={toy.requested ? "outline" : "default"}
+                          onClick={() => requestNearby(toy)}
+                          className={toy.requested ? "" : "bg-primary hover:bg-primary/90"}
+                        >
+                          {toy.requested ? (
+                            <>
+                              <Clock className="size-4 mr-1" />
+                              等待通过
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="size-4 mr-1" />
+                              加好友
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               </div>
             )}
