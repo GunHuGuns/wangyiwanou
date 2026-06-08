@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Send, Mic, MicOff, Sparkles, Settings } from 'lucide-react'
+import { Send, Mic, Keyboard, Sparkles, Settings, Play } from 'lucide-react'
 import { ChatMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -16,60 +15,77 @@ const initialMessages: ChatMessage[] = [
     content: '你好呀！今天想和我聊点什么呢？',
     role: 'assistant',
     timestamp: new Date(),
+    kind: 'text',
   },
+]
+
+const textResponses = [
+  '嗯嗯，我明白你的意思了！',
+  '哇，听起来很有趣呢！',
+  '我也这么觉得！你说得太对了~',
+  '让我想想...其实我觉得每个人都有自己的想法，重要的是跟随自己的内心呢！',
+  '你今天心情怎么样呀？有什么想和我分享的吗？',
+  '嘻嘻，和你聊天真开心！',
 ]
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [inputValue, setInputValue] = useState('')
+  // 输入模式：文字 / 语音
+  const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
   const [isRecording, setIsRecording] = useState(false)
+  const [recordSeconds, setRecordSeconds] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
+  const [playingId, setPlayingId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recordTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, isTyping])
 
-  const handleSend = async () => {
-    if (!inputValue.trim()) return
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: inputValue.trim(),
-      role: 'user',
-      timestamp: new Date(),
+  useEffect(() => {
+    return () => {
+      if (recordTimer.current) clearInterval(recordTimer.current)
     }
+  }, [])
 
-    setMessages((prev) => [...prev, userMessage])
-    setInputValue('')
+  const replyFromAssistant = () => {
     setIsTyping(true)
-
-    // Simulate AI response
     setTimeout(() => {
-      const responses = [
-        '嗯嗯，我明白你的意思了！',
-        '哇，听起来很有趣呢！',
-        '我也这么觉得！你说得太对了~',
-        '让我想想...其实我觉得每个人都有自己的想法，重要的是跟随自己的内心呢！',
-        '你今天心情怎么样呀？有什么想和我分享的吗？',
-        '嘻嘻，和你聊天真开心！',
-      ]
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: randomResponse,
-        role: 'assistant',
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
+      const randomResponse =
+        textResponses[Math.floor(Math.random() * textResponses.length)]
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          content: randomResponse,
+          role: 'assistant',
+          timestamp: new Date(),
+          kind: 'text',
+        },
+      ])
       setIsTyping(false)
     }, 1000 + Math.random() * 1000)
+  }
+
+  const handleSend = () => {
+    if (!inputValue.trim()) return
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        content: inputValue.trim(),
+        role: 'user',
+        timestamp: new Date(),
+        kind: 'text',
+      },
+    ])
+    setInputValue('')
+    replyFromAssistant()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -79,27 +95,50 @@ export default function ChatPage() {
     }
   }
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording)
-    // Simulate voice recording
-    if (!isRecording) {
-      setTimeout(() => {
-        setIsRecording(false)
-        setInputValue('（语音消息模拟）今天天气真好！')
-      }, 2000)
-    }
+  const startRecording = () => {
+    setIsRecording(true)
+    setRecordSeconds(0)
+    recordTimer.current = setInterval(() => {
+      setRecordSeconds((s) => {
+        if (s >= 60) {
+          if (recordTimer.current) clearInterval(recordTimer.current)
+          return s
+        }
+        return s + 1
+      })
+    }, 1000)
   }
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+  const finishRecording = (send: boolean) => {
+    if (recordTimer.current) clearInterval(recordTimer.current)
+    const duration = Math.max(1, recordSeconds)
+    setIsRecording(false)
+    setRecordSeconds(0)
+    if (!send) return
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        content: '语音消息',
+        role: 'user',
+        timestamp: new Date(),
+        kind: 'voice',
+        duration,
+      },
+    ])
+    replyFromAssistant()
   }
+
+  const playVoice = (msg: ChatMessage) => {
+    setPlayingId(msg.id)
+    setTimeout(() => setPlayingId(null), (msg.duration || 2) * 300)
+  }
+
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
-      {/* Header */}
       <PageHeader
         title="和玩偶对话"
         subtitle="温暖小熊在线"
@@ -112,7 +151,7 @@ export default function ChatPage() {
         }
       />
 
-      {/* Chat Messages */}
+      {/* 消息列表 */}
       <ScrollArea ref={scrollRef} className="flex-1 px-4 py-4">
         <div className="max-w-lg mx-auto space-y-4">
           {messages.map((message) => (
@@ -123,7 +162,6 @@ export default function ChatPage() {
                 message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
               )}
             >
-              {/* Avatar */}
               <div
                 className={cn(
                   'w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0',
@@ -132,12 +170,9 @@ export default function ChatPage() {
                     : 'bg-gradient-to-br from-primary to-cute-coral'
                 )}
               >
-                <span className="text-lg">
-                  {message.role === 'user' ? '👤' : '🧸'}
-                </span>
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
 
-              {/* Message Bubble */}
               <div
                 className={cn(
                   'max-w-[75%] rounded-2xl px-4 py-3',
@@ -146,7 +181,36 @@ export default function ChatPage() {
                     : 'bg-card shadow-sm rounded-tl-sm'
                 )}
               >
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                {message.kind === 'voice' ? (
+                  <button
+                    onClick={() => playVoice(message)}
+                    className="flex items-center gap-2"
+                    style={{ minWidth: `${Math.min(160, 50 + (message.duration || 2) * 10)}px` }}
+                  >
+                    <Play
+                      className={cn('w-4 h-4', playingId === message.id && 'animate-pulse')}
+                    />
+                    <span className="flex-1 flex items-center gap-0.5">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            'inline-block w-0.5 rounded-full',
+                            message.role === 'user'
+                              ? 'bg-primary-foreground/70'
+                              : 'bg-muted-foreground/50'
+                          )}
+                          style={{ height: `${6 + ((i * 5) % 12)}px` }}
+                        />
+                      ))}
+                    </span>
+                    <span className="text-sm tabular-nums">
+                      {playingId === message.id ? '播放中' : `${message.duration}″`}
+                    </span>
+                  </button>
+                ) : (
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                )}
                 <p
                   className={cn(
                     'text-[10px] mt-1',
@@ -161,11 +225,10 @@ export default function ChatPage() {
             </div>
           ))}
 
-          {/* Typing Indicator */}
           {isTyping && (
             <div className="flex gap-3">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-cute-coral flex items-center justify-center">
-                <span className="text-lg">🧸</span>
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div className="bg-card shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
                 <div className="flex gap-1">
@@ -185,59 +248,80 @@ export default function ChatPage() {
         </div>
       </ScrollArea>
 
-      {/* Input Area */}
+      {/* 输入区 */}
       <div className="border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 safe-area-pb">
         <div className="max-w-lg mx-auto flex items-end gap-2">
-          {/* Voice Button */}
+          {/* 文字 / 语音 模式切换 */}
           <Button
             variant="outline"
             size="icon"
-            className={cn(
-              'rounded-full flex-shrink-0 transition-all',
-              isRecording && 'bg-destructive text-destructive-foreground border-destructive'
-            )}
-            onClick={toggleRecording}
+            className="rounded-full flex-shrink-0"
+            onClick={() => {
+              setInputMode((m) => (m === 'text' ? 'voice' : 'text'))
+              setIsRecording(false)
+            }}
+            aria-label={inputMode === 'text' ? '切换到语音输入' : '切换到键盘输入'}
           >
-            {isRecording ? (
-              <MicOff className="w-5 h-5" />
-            ) : (
+            {inputMode === 'text' ? (
               <Mic className="w-5 h-5" />
+            ) : (
+              <Keyboard className="w-5 h-5" />
             )}
           </Button>
 
-          {/* Text Input */}
-          <div className="flex-1 relative">
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="输入消息..."
-              className="w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring max-h-32"
-              rows={1}
-              style={{
-                height: 'auto',
-                minHeight: '44px',
+          {inputMode === 'text' ? (
+            <>
+              <div className="flex-1 relative">
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="输入消息..."
+                  className="w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring max-h-32"
+                  rows={1}
+                  style={{ minHeight: '44px' }}
+                />
+              </div>
+              <Button
+                onClick={handleSend}
+                disabled={!inputValue.trim() || isTyping}
+                size="icon"
+                className="rounded-full bg-gradient-to-br from-primary to-cute-coral flex-shrink-0"
+              >
+                <Send className="w-5 h-5" />
+              </Button>
+            </>
+          ) : (
+            /* 按住说话 */
+            <button
+              onMouseDown={startRecording}
+              onMouseUp={() => isRecording && finishRecording(true)}
+              onMouseLeave={() => isRecording && finishRecording(false)}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                startRecording()
               }}
-            />
-          </div>
-
-          {/* Send Button */}
-          <Button
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isTyping}
-            size="icon"
-            className="rounded-full bg-gradient-to-br from-primary to-cute-coral flex-shrink-0"
-          >
-            <Send className="w-5 h-5" />
-          </Button>
+              onTouchEnd={(e) => {
+                e.preventDefault()
+                if (isRecording) finishRecording(true)
+              }}
+              className={cn(
+                'flex-1 h-11 rounded-2xl border border-input text-sm font-medium select-none transition-colors',
+                isRecording
+                  ? 'bg-destructive text-destructive-foreground'
+                  : 'bg-background text-foreground'
+              )}
+            >
+              {isRecording ? `松开发送 · ${recordSeconds}″` : '按住 说话'}
+            </button>
+          )}
         </div>
 
-        {/* Recording Indicator */}
         {isRecording && (
           <div className="max-w-lg mx-auto mt-2 flex items-center justify-center gap-2 text-destructive">
             <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-            <span className="text-sm">正在录音...</span>
+            <span className="text-sm">正在录音... 松开发送，移开取消</span>
           </div>
         )}
       </div>

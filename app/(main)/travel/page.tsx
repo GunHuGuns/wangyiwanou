@@ -52,18 +52,9 @@ export default function TravelPage() {
                 <Plane className="w-7 h-7 text-white" />
               </div>
               <h2 className="text-xl font-bold mb-2">云端旅行</h2>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground">
                 即使不能亲自去，玩偶也会带你看遍世界的美景，用AI生成独特的旅行故事
               </p>
-              <Link href="/travel/postcards">
-                <span className="text-sm font-medium text-primary inline-flex items-center gap-1">
-                  开始探索
-                  <ChevronRight className="w-4 h-4" />
-                </span>
-              </Link>
-            </div>
-            <div className="absolute -right-4 -bottom-4 text-8xl opacity-20">
-              🌍
             </div>
           </Card>
 

@@ -56,6 +56,18 @@ export interface Message {
   audioUrl?: string
 }
 
+// 聊天消息：支持文字与语音两种输入方式
+export interface ChatMessage {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  timestamp: Date
+  // 消息类型：文字 / 语音
+  kind?: "text" | "voice"
+  // 语音时长（秒）
+  duration?: number
+}
+
 // 日记类型
 export interface Diary {
   id: string

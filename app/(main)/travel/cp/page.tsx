@@ -6,17 +6,35 @@ import { PageHeader } from "@/components/common/page-header"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { 
   Heart, 
   Camera, 
   MapPin, 
   Image as ImageIcon,
   Share2,
-  Sparkles
+  Sparkles,
+  Check
 } from "lucide-react"
 import { mockFriends } from "@/lib/mock-data"
 import { useApp } from "@/lib/contexts/app-context"
 import { toast } from "sonner"
+
+const destinationOptions = [
+  { id: "paris", name: "巴黎", desc: "浪漫之都，埃菲尔铁塔" },
+  { id: "tokyo", name: "东京", desc: "繁华都市，樱花满街" },
+  { id: "sanya", name: "三亚", desc: "阳光沙滩，碧海蓝天" },
+  { id: "xian", name: "西安", desc: "千年古都，兵马俑" },
+  { id: "lijiang", name: "丽江", desc: "古城慢生活，雪山相伴" },
+  { id: "iceland", name: "冰岛", desc: "极光与冰川的奇境" },
+]
 
 const cpTravelMemories = [
   {
@@ -43,12 +61,42 @@ function CPTravelContent() {
   const myToy = state.connectedDevice
 
   const [isGenerating, setIsGenerating] = useState(false)
+  const [destOpen, setDestOpen] = useState(false)
+  const [selectedDest, setSelectedDest] = useState<string | null>(null)
+  const [chosenDest, setChosenDest] = useState<(typeof destinationOptions)[number] | null>(null)
+  const [memories, setMemories] = useState(cpTravelMemories)
+
+  const confirmDestination = () => {
+    if (!selectedDest) {
+      toast.error("请先选择一个目的地")
+      return
+    }
+    const dest = destinationOptions.find((d) => d.id === selectedDest) || null
+    setChosenDest(dest)
+    setDestOpen(false)
+    toast.success(`已选择目的地：${dest?.name}，点击生成合照开启旅程`)
+  }
 
   const generatePostcard = () => {
+    if (!chosenDest) {
+      toast.error("请先选择旅行目的地")
+      setDestOpen(true)
+      return
+    }
     setIsGenerating(true)
     setTimeout(() => {
       setIsGenerating(false)
-      toast.success("合照生成成功，已保存到旅行回忆")
+      const newMemory = {
+        id: `m-${Date.now()}`,
+        location: chosenDest.name,
+        date: new Date().toISOString().slice(0, 10),
+        image: "",
+        description: `和${friend.name}一起来到${chosenDest.name}，${chosenDest.desc}，留下了甜蜜合照~`,
+      }
+      setMemories((prev) => [newMemory, ...prev])
+      toast.success(`${chosenDest.name}合照生成成功，已保存到旅行回忆`)
+      setChosenDest(null)
+      setSelectedDest(null)
     }, 2000)
   }
 
@@ -110,18 +158,26 @@ function CPTravelContent() {
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-medium text-foreground">开启新旅程</h3>
               <p className="text-sm text-muted-foreground">
-                和{friend.name}一起去冒险吧！
+                {chosenDest
+                  ? `目的地：${chosenDest.name}`
+                  : `和${friend.name}一起去冒险吧！`}
               </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="h-auto py-3" onClick={() => toast("请在云旅行中选择目的地")}>
+            <Button
+              variant={chosenDest ? "default" : "outline"}
+              className={chosenDest ? "h-auto py-3 bg-secondary hover:bg-secondary/90" : "h-auto py-3"}
+              onClick={() => setDestOpen(true)}
+            >
               <div className="text-center">
                 <MapPin className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-sm">选择目的地</span>
+                <span className="text-sm">
+                  {chosenDest ? chosenDest.name : "选择目的地"}
+                </span>
               </div>
             </Button>
             <Button 
@@ -143,7 +199,7 @@ function CPTravelContent() {
         <div>
           <h3 className="font-semibold text-foreground mb-3">旅行回忆</h3>
           <div className="space-y-3">
-            {cpTravelMemories.map((memory) => (
+            {memories.map((memory) => (
               <Card key={memory.id} className="overflow-hidden bg-card">
                 <div className="aspect-video bg-muted flex items-center justify-center">
                   <div className="text-center text-muted-foreground">
@@ -180,6 +236,55 @@ function CPTravelContent() {
           </div>
         </div>
       </div>
+
+      {/* 选择目的地对话框 */}
+      <Dialog
+        open={destOpen}
+        onOpenChange={(o) => {
+          setDestOpen(o)
+          if (!o && !chosenDest) setSelectedDest(null)
+        }}
+      >
+        <DialogContent className="max-w-sm mx-4 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center">选择旅行目的地</DialogTitle>
+            <DialogDescription className="text-center">
+              和 {friend.name} 一起去哪里呢？
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2 max-h-72 overflow-y-auto">
+            {destinationOptions.map((dest) => (
+              <button
+                key={dest.id}
+                onClick={() => setSelectedDest(dest.id)}
+                className={`flex flex-col items-start gap-1 p-3 rounded-2xl border-2 text-left transition-all ${
+                  selectedDest === dest.id
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-card hover:border-primary/40"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 w-full">
+                  <MapPin className="size-4 text-primary flex-shrink-0" />
+                  <span className="text-sm font-medium text-foreground">{dest.name}</span>
+                  {selectedDest === dest.id && (
+                    <Check className="size-4 text-primary ml-auto" />
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">{dest.desc}</span>
+              </button>
+            ))}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              onClick={confirmDestination}
+              disabled={!selectedDest}
+              className="w-full rounded-xl bg-primary hover:bg-primary/90"
+            >
+              确认目的地
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
