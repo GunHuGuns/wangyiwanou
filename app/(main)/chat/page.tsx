@@ -138,7 +138,7 @@ export default function ChatPage() {
     date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
+    <div className="flex flex-col h-[100dvh] pb-[72px] bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
       <PageHeader
         title="和玩偶对话"
         subtitle="温暖小熊在线"
