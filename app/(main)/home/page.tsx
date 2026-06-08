@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
   Battery,
   Wifi,
@@ -16,7 +15,6 @@ import {
   Sparkles,
   ChevronRight,
   Volume2,
-  Settings,
 } from 'lucide-react'
 import { PlushDevice } from '@/lib/types'
 import { plushTypeIcons } from '@/lib/mock-data'
@@ -45,7 +43,7 @@ const quickActions = [
     description: '探索新地方',
   },
   {
-    href: '/social',
+    href: '/friends',
     icon: Users,
     label: '交朋友',
     color: 'from-cute-lavender to-cute-pink',
@@ -57,7 +55,6 @@ const moreFeatures = [
   { href: '/alarm', icon: Clock, label: '闹钟', badge: '3个' },
   { href: '/settings/device', icon: Volume2, label: '音量调节' },
   { href: '/settings/character', icon: Sparkles, label: '角色切换' },
-  { href: '/settings', icon: Settings, label: '更多设置' },
 ]
 
 export default function HomePage() {
@@ -135,15 +132,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-
-              {/* Quick Chat Button */}
-              <Button
-                onClick={() => router.push('/chat')}
-                size="icon"
-                className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-cute-coral shadow-md"
-              >
-                <MessageCircle className="w-5 h-5" />
-              </Button>
             </div>
           </Card>
         </div>

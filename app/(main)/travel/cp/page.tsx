@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { mockFriends } from "@/lib/mock-data"
 import { useApp } from "@/lib/contexts/app-context"
+import { toast } from "sonner"
 
 const cpTravelMemories = [
   {
@@ -47,6 +48,7 @@ function CPTravelContent() {
     setIsGenerating(true)
     setTimeout(() => {
       setIsGenerating(false)
+      toast.success("合照生成成功，已保存到旅行回忆")
     }, 2000)
   }
 
@@ -116,7 +118,7 @@ function CPTravelContent() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="h-auto py-3">
+            <Button variant="outline" className="h-auto py-3" onClick={() => toast("请在云旅行中选择目的地")}>
               <div className="text-center">
                 <MapPin className="w-5 h-5 mx-auto mb-1" />
                 <span className="text-sm">选择目的地</span>
@@ -163,11 +165,11 @@ function CPTravelContent() {
                     {memory.description}
                   </p>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => toast(`查看${memory.location}合照`)}>
                       <ImageIcon className="w-4 h-4 mr-1" />
                       查看
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => toast.success("已复制分享链接")}>
                       <Share2 className="w-4 h-4 mr-1" />
                       分享
                     </Button>

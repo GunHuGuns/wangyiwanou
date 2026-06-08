@@ -6,19 +6,51 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, Sparkles, Heart, MessageCircle, Wifi } from "lucide-react"
+import { Users, Sparkles, Heart, Wifi, UserPlus, Check, X } from "lucide-react"
 import { mockFriends } from "@/lib/mock-data"
+import type { Friend } from "@/lib/types"
 import Link from "next/link"
+import { toast } from "sonner"
+
+interface FriendRequest {
+  id: string
+  name: string
+  avatar: string
+  ownerName: string
+  message: string
+  time: string
+}
+
+const initialRequests: FriendRequest[] = [
+  {
+    id: "req1",
+    name: "棉花糖",
+    avatar: "",
+    ownerName: "小雨",
+    message: "我们在公园碰到啦，加个好友吧~",
+    time: "5分钟前",
+  },
+  {
+    id: "req2",
+    name: "团子",
+    avatar: "",
+    ownerName: "小天",
+    message: "想和你的玩偶做朋友！",
+    time: "2小时前",
+  },
+]
 
 export default function FriendsPage() {
   const [isSearching, setIsSearching] = useState(false)
-  const [nearbyToys, setNearbyToys] = useState<typeof mockFriends>([])
+  const [nearbyToys, setNearbyToys] = useState<Friend[]>([])
+  const [addedIds, setAddedIds] = useState<string[]>([])
+  const [friends, setFriends] = useState<Friend[]>(mockFriends)
+  const [requests, setRequests] = useState<FriendRequest[]>(initialRequests)
 
   const searchNearby = () => {
     setIsSearching(true)
     setTimeout(() => {
       setIsSearching(false)
-      // 模拟发现附近玩偶
       setNearbyToys([
         {
           id: "new1",
@@ -30,17 +62,55 @@ export default function FriendsPage() {
           isCp: false,
         },
       ])
+      toast.success("发现 1 只附近的玩偶")
     }, 2000)
+  }
+
+  const addNearby = (toy: Friend) => {
+    if (addedIds.includes(toy.id)) return
+    setAddedIds((prev) => [...prev, toy.id])
+    setFriends((prev) => [...prev, toy])
+    toast.success(`已添加 ${toy.name} 为好友`)
+  }
+
+  const acceptRequest = (req: FriendRequest) => {
+    setFriends((prev) => [
+      ...prev,
+      {
+        id: req.id,
+        name: req.name,
+        avatar: req.avatar,
+        ownerName: req.ownerName,
+        intimacy: 10,
+        lastMeet: "刚刚",
+        isCp: false,
+      },
+    ])
+    setRequests((prev) => prev.filter((r) => r.id !== req.id))
+    toast.success(`已通过 ${req.name} 的好友请求`)
+  }
+
+  const rejectRequest = (req: FriendRequest) => {
+    setRequests((prev) => prev.filter((r) => r.id !== req.id))
+    toast(`已拒绝 ${req.name} 的请求`)
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-20">
       <PageHeader title="玩偶社交" showBack />
-      
+
       <div className="flex-1 p-4">
         <Tabs defaultValue="friends" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="friends">我的好友</TabsTrigger>
+            <TabsTrigger value="requests" className="relative">
+              新朋友
+              {requests.length > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center min-w-4 h-4 px-1 text-[10px] rounded-full bg-secondary text-secondary-foreground">
+                  {requests.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="nearby">碰一碰</TabsTrigger>
           </TabsList>
 
@@ -48,12 +118,12 @@ export default function FriendsPage() {
             {/* 好友统计 */}
             <div className="grid grid-cols-3 gap-3">
               <Card className="p-3 text-center bg-card">
-                <div className="text-2xl font-bold text-primary">{mockFriends.length}</div>
+                <div className="text-2xl font-bold text-primary">{friends.length}</div>
                 <div className="text-xs text-muted-foreground">好友总数</div>
               </Card>
               <Card className="p-3 text-center bg-card">
                 <div className="text-2xl font-bold text-secondary">
-                  {mockFriends.filter(f => f.isCp).length}
+                  {friends.filter((f) => f.isCp).length}
                 </div>
                 <div className="text-xs text-muted-foreground">CP好友</div>
               </Card>
@@ -65,20 +135,20 @@ export default function FriendsPage() {
 
             {/* 好友列表 */}
             <div className="space-y-3">
-              {mockFriends.map((friend) => (
+              {friends.map((friend) => (
                 <Link key={friend.id} href={`/friends/${friend.id}`}>
                   <Card className="p-4 bg-card hover:bg-card/80 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <Avatar className="w-14 h-14 border-2 border-primary/20">
+                        <Avatar className="size-14 border-2 border-primary/20">
                           <AvatarImage src={friend.avatar} />
                           <AvatarFallback className="bg-primary/10 text-primary text-lg">
                             {friend.name[0]}
                           </AvatarFallback>
                         </Avatar>
                         {friend.isCp && (
-                          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
-                            <Heart className="w-3 h-3 text-white fill-white" />
+                          <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-secondary flex items-center justify-center">
+                            <Heart className="size-3 text-white fill-white" />
                           </div>
                         )}
                       </div>
@@ -96,7 +166,7 @@ export default function FriendsPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className="h-full bg-primary rounded-full transition-all"
                               style={{ width: `${friend.intimacy}%` }}
                             />
@@ -113,12 +183,80 @@ export default function FriendsPage() {
             </div>
           </TabsContent>
 
+          {/* 新朋友：被别人添加的请求 */}
+          <TabsContent value="requests" className="space-y-4">
+            <Card className="p-4 bg-secondary/10 border-secondary/20">
+              <div className="flex items-center gap-3">
+                <div className="size-12 rounded-full bg-secondary/20 flex items-center justify-center">
+                  <UserPlus className="size-6 text-secondary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-foreground">好友请求</h3>
+                  <p className="text-sm text-muted-foreground">
+                    其他玩偶想和你成为好友
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {requests.length === 0 ? (
+              <Card className="p-8 text-center bg-card">
+                <UserPlus className="size-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">暂时没有新的好友请求</p>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {requests.map((req) => (
+                  <Card key={req.id} className="p-4 bg-card">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="size-14 border-2 border-secondary/20">
+                        <AvatarImage src={req.avatar} />
+                        <AvatarFallback className="bg-secondary/10 text-secondary text-lg">
+                          {req.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">{req.name}</span>
+                          <span className="text-xs text-muted-foreground">{req.time}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {req.ownerName}的玩偶
+                        </p>
+                        <p className="text-sm text-foreground/80 mt-1">{req.message}</p>
+                        <div className="flex items-center gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            onClick={() => acceptRequest(req)}
+                            className="flex-1 bg-primary hover:bg-primary/90"
+                          >
+                            <Check className="size-4 mr-1" />
+                            接受
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => rejectRequest(req)}
+                            className="flex-1"
+                          >
+                            <X className="size-4 mr-1" />
+                            拒绝
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="nearby" className="space-y-4">
             {/* 碰一碰说明 */}
             <Card className="p-4 bg-primary/10 border-primary/20">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Wifi className="w-6 h-6 text-primary" />
+                <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Wifi className="size-6 text-primary" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground">碰一碰交友</h3>
@@ -131,10 +269,16 @@ export default function FriendsPage() {
 
             {/* 搜索按钮 */}
             <Card className="p-6 text-center bg-card">
-              <div className={`w-24 h-24 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4 ${isSearching ? 'animate-pulse' : ''}`}>
-                <Users className={`w-12 h-12 text-primary ${isSearching ? 'animate-bounce' : ''}`} />
+              <div
+                className={`size-24 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4 ${
+                  isSearching ? "animate-pulse" : ""
+                }`}
+              >
+                <Users
+                  className={`size-12 text-primary ${isSearching ? "animate-bounce" : ""}`}
+                />
               </div>
-              <Button 
+              <Button
                 onClick={searchNearby}
                 disabled={isSearching}
                 className="bg-primary hover:bg-primary/90"
@@ -147,33 +291,50 @@ export default function FriendsPage() {
             {nearbyToys.length > 0 && (
               <div>
                 <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-secondary" />
+                  <Sparkles className="size-4 text-secondary" />
                   发现新朋友
                 </h3>
                 <div className="space-y-3">
-                  {nearbyToys.map((toy) => (
-                    <Card key={toy.id} className="p-4 bg-card border-primary/30">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-14 h-14 border-2 border-primary/30">
-                          <AvatarImage src={toy.avatar} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                            {toy.name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="font-medium text-foreground">{toy.name}</div>
-                          <p className="text-sm text-muted-foreground">
-                            {toy.ownerName}的玩偶
-                          </p>
-                          <p className="text-xs text-secondary mt-1">{toy.lastMeet}</p>
+                  {nearbyToys.map((toy) => {
+                    const added = addedIds.includes(toy.id)
+                    return (
+                      <Card key={toy.id} className="p-4 bg-card border-primary/30">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-14 border-2 border-primary/30">
+                            <AvatarImage src={toy.avatar} />
+                            <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                              {toy.name[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="font-medium text-foreground">{toy.name}</div>
+                            <p className="text-sm text-muted-foreground">
+                              {toy.ownerName}的玩偶
+                            </p>
+                            <p className="text-xs text-secondary mt-1">{toy.lastMeet}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={added}
+                            onClick={() => addNearby(toy)}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            {added ? (
+                              <>
+                                <Check className="size-4 mr-1" />
+                                已添加
+                              </>
+                            ) : (
+                              <>
+                                <Heart className="size-4 mr-1" />
+                                加好友
+                              </>
+                            )}
+                          </Button>
                         </div>
-                        <Button size="sm" className="bg-primary hover:bg-primary/90">
-                          <Heart className="w-4 h-4 mr-1" />
-                          加好友
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    )
+                  })}
                 </div>
               </div>
             )}

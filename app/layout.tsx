@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import { Nunito } from 'next/font/google'
 import './globals.css'
 import { AppProvider } from '@/lib/contexts/app-context'
+import { AuthProvider } from '@/lib/contexts/auth-context'
+import { Toaster } from '@/components/ui/sonner'
 
 const nunito = Nunito({ 
   subsets: ['latin'],
@@ -48,11 +50,14 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-sans antialiased bg-background">
-        <AppProvider>
-          <div className="mx-auto max-w-md min-h-screen bg-background">
-            {children}
-          </div>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <div className="mx-auto max-w-md min-h-screen bg-background">
+              {children}
+            </div>
+            <Toaster />
+          </AppProvider>
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

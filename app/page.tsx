@@ -3,18 +3,21 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Sparkles } from "lucide-react"
+import { useAuth } from "@/lib/contexts/auth-context"
 
 export default function SplashPage() {
   const router = useRouter()
+  const { user, isLoading } = useAuth()
   const [isAnimating, setIsAnimating] = useState(true)
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsAnimating(false)
-      router.push("/connect")
+      if (isLoading) return
+      router.push(user ? "/connect" : "/auth")
     }, 2500)
     return () => clearTimeout(timer)
-  }, [router])
+  }, [router, user, isLoading])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary/20 via-background to-background p-6">
