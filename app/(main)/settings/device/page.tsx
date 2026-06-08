@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { DeviceStatusBanner } from '@/components/common/device-status-banner'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
   Volume2,
   VolumeX,
   Volume1,
@@ -20,6 +28,8 @@ import {
   BluetoothOff,
   PlugZap,
   FlaskConical,
+  Unlink,
+  AlertTriangle,
 } from 'lucide-react'
 import { plushTypeIcons } from '@/lib/mock-data'
 import { useRouter } from 'next/navigation'
@@ -45,6 +55,7 @@ export default function DeviceSettingsPage() {
   const { device, loaded, update, disconnect } = useDevice()
   const [volume, setVolume] = useState(70)
   const [isMuted, setIsMuted] = useState(false)
+  const [unbindOpen, setUnbindOpen] = useState(false)
 
   useEffect(() => {
     if (device) setVolume(device.volume || 70)
@@ -59,9 +70,18 @@ export default function DeviceSettingsPage() {
 
   const toggleMute = () => setIsMuted(!isMuted)
 
+  // 断开连接：设备仍绑定，仅置为离线状态
   const handleDisconnect = () => {
+    update({ status: 'disconnected' })
+    toast('设备已断开，可随时重新连接')
+  }
+
+  // 解绑设备：彻底解除绑定，清除设备数据
+  const handleUnbind = () => {
     disconnect()
     sessionStorage.removeItem('selectedDevice')
+    setUnbindOpen(false)
+    toast.success('设备已解绑')
     router.push('/connect')
   }
 
@@ -287,21 +307,42 @@ export default function DeviceSettingsPage() {
             </div>
           </Card>
 
-          {/* 连接 / 断开 */}
+          {/* 连接 / 断开 / 解绑 */}
           {device ? (
-            <Card className="p-5 bg-card/80 border-0">
-              <h3 className="font-semibold mb-2">断开连接</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                断开后需要重新扫描连接玩偶
-              </p>
-              <Button
-                variant="destructive"
-                className="w-full rounded-xl"
-                onClick={handleDisconnect}
-              >
-                <Power className="w-4 h-4 mr-2" />
-                断开连接
-              </Button>
+            <Card className="p-5 bg-card/80 border-0 space-y-3">
+              <div>
+                <h3 className="font-semibold mb-2">连接管理</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  断开后设备仍保持绑定，可随时重新连接；解绑将彻底移除该设备
+                </p>
+                {!isOffline && (
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl mb-3"
+                    onClick={handleDisconnect}
+                  >
+                    <Power className="w-4 h-4 mr-2" />
+                    断开连接
+                  </Button>
+                )}
+                {isOffline && (
+                  <Button
+                    className="w-full rounded-xl mb-3 bg-primary hover:bg-primary/90"
+                    onClick={() => router.push('/connect')}
+                  >
+                    <Bluetooth className="w-4 h-4 mr-2" />
+                    重新连接
+                  </Button>
+                )}
+                <Button
+                  variant="destructive"
+                  className="w-full rounded-xl"
+                  onClick={() => setUnbindOpen(true)}
+                >
+                  <Unlink className="w-4 h-4 mr-2" />
+                  解绑设备
+                </Button>
+              </div>
             </Card>
           ) : (
             <Card className="p-5 bg-card/80 border-0">
@@ -320,6 +361,37 @@ export default function DeviceSettingsPage() {
           )}
         </div>
       </div>
+
+      {/* 解绑确认弹窗 */}
+      <Dialog open={unbindOpen} onOpenChange={setUnbindOpen}>
+        <DialogContent className="max-w-sm mx-4 rounded-2xl">
+          <DialogHeader>
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-2">
+              <AlertTriangle className="w-6 h-6 text-destructive" />
+            </div>
+            <DialogTitle className="text-center">确认解绑设备？</DialogTitle>
+            <DialogDescription className="text-center">
+              解绑后将移除「{device?.name}」的绑定关系，相关数据需要重新连接后才能恢复。此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="destructive"
+              className="w-full rounded-xl"
+              onClick={handleUnbind}
+            >
+              确认解绑
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={() => setUnbindOpen(false)}
+            >
+              取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
