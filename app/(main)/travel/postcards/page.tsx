@@ -4,31 +4,40 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/common/page-header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { MapPin, Calendar, Heart, Share2, Sparkles } from 'lucide-react'
 import { mockPostcards } from '@/lib/mock-data'
+import { TravelPostcard } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+
+const locationEmoji = (location: string) => {
+  if (location.includes('巴黎')) return '🗼'
+  if (location.includes('东京')) return '🌸'
+  if (location.includes('纽约')) return '🗽'
+  return '🏛️'
+}
 
 export default function PostcardsPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [likedPosts, setLikedPosts] = useState<string[]>([])
-
-  const myPostcards = mockPostcards.filter((p) => !p.isFromCloud)
-  const cloudPostcards = mockPostcards.filter((p) => p.isFromCloud)
+  const [detailPostcard, setDetailPostcard] = useState<TravelPostcard | null>(null)
 
   const displayedPostcards =
     activeTab === 'all'
       ? mockPostcards
-      : activeTab === 'mine'
-        ? myPostcards
-        : cloudPostcards
+      : activeTab === 'unread'
+        ? mockPostcards.filter((p) => !p.isRead)
+        : mockPostcards.filter((p) => p.isRead)
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('zh-CN', {
-      month: 'short',
-      day: 'numeric',
-    }).format(date)
-  }
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric' }).format(date)
 
   const toggleLike = (id: string) => {
     setLikedPosts((prev) =>
@@ -38,7 +47,7 @@ export default function PostcardsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cute-cream via-background to-cute-orange/10 pb-20">
-      <PageHeader title="旅行明信片" showBack backHref="/travel" />
+      <PageHeader title="旅行明信片" showBack />
 
       <div className="px-4 py-4">
         <div className="max-w-lg mx-auto space-y-4">
@@ -48,43 +57,34 @@ export default function PostcardsPage() {
               <TabsTrigger value="all" className="rounded-lg text-xs py-2">
                 全部
               </TabsTrigger>
-              <TabsTrigger value="mine" className="rounded-lg text-xs py-2">
-                我的明信片
+              <TabsTrigger value="unread" className="rounded-lg text-xs py-2">
+                未读
               </TabsTrigger>
-              <TabsTrigger value="cloud" className="rounded-lg text-xs py-2">
-                云端偶遇
+              <TabsTrigger value="read" className="rounded-lg text-xs py-2">
+                已读
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          {/* Postcards Grid */}
+          {/* Postcards */}
           <div className="space-y-4">
             {displayedPostcards.map((postcard) => (
-              <Card
-                key={postcard.id}
-                className="overflow-hidden border-0 bg-card/80"
-              >
-                {/* Image placeholder */}
+              <Card key={postcard.id} className="overflow-hidden border-0 bg-card/80">
                 <div className="h-48 bg-gradient-to-br from-cute-sky/30 to-cute-mint/30 flex items-center justify-center relative">
-                  <span className="text-6xl">
-                    {postcard.location.includes('巴黎')
-                      ? '🗼'
-                      : postcard.location.includes('东京')
-                        ? '🌸'
-                        : '🏛️'}
-                  </span>
-                  {postcard.isFromCloud && (
-                    <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-cute-sky/80 text-white text-xs flex items-center gap-1">
+                  <span className="text-6xl">{locationEmoji(postcard.location)}</span>
+                  {!postcard.isRead && (
+                    <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-cute-coral/90 text-primary-foreground text-xs flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
-                      云端偶遇
+                      未读
                     </div>
                   )}
                 </div>
 
-                {/* Content */}
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-bold text-lg">{postcard.title}</h3>
+                    <h3 className="font-bold text-lg">
+                      来自{postcard.location}的明信片
+                    </h3>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -105,7 +105,7 @@ export default function PostcardsPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
-                      {postcard.location}
+                      {postcard.location} · {postcard.country}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -114,20 +114,15 @@ export default function PostcardsPage() {
                   </div>
 
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-                    {postcard.story}
+                    {postcard.message}
                   </p>
-
-                  {postcard.isFromCloud && postcard.authorPlushName && (
-                    <p className="text-xs text-cute-sky mb-3">
-                      来自：{postcard.authorPlushName}
-                    </p>
-                  )}
 
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       className="flex-1 rounded-xl"
+                      onClick={() => toast.success('已复制分享链接')}
                     >
                       <Share2 className="w-4 h-4 mr-1" />
                       分享
@@ -135,6 +130,7 @@ export default function PostcardsPage() {
                     <Button
                       size="sm"
                       className="flex-1 rounded-xl bg-gradient-to-r from-primary to-cute-coral"
+                      onClick={() => setDetailPostcard(postcard)}
                     >
                       查看详情
                     </Button>
@@ -157,6 +153,47 @@ export default function PostcardsPage() {
           )}
         </div>
       </div>
+
+      {/* 明信片详情弹窗 */}
+      <Dialog
+        open={!!detailPostcard}
+        onOpenChange={(open) => !open && setDetailPostcard(null)}
+      >
+        <DialogContent>
+          {detailPostcard && (
+            <>
+              <DialogHeader>
+                <DialogTitle>来自{detailPostcard.location}的明信片</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="h-40 rounded-2xl bg-gradient-to-br from-cute-sky/30 to-cute-mint/30 flex items-center justify-center text-6xl">
+                  {locationEmoji(detailPostcard.location)}
+                </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-cute-coral" />
+                    {detailPostcard.location} · {detailPostcard.country}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4 text-cute-sky" />
+                    {formatDate(detailPostcard.createdAt)}
+                  </span>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {detailPostcard.message}
+                </p>
+                <Button
+                  onClick={() => toast.success('已收藏到我的明信片')}
+                  className="w-full rounded-xl bg-gradient-to-r from-primary to-cute-coral"
+                >
+                  <Heart className="w-4 h-4 mr-1" />
+                  收藏明信片
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

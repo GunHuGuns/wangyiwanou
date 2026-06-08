@@ -220,8 +220,8 @@ export default function CharacterSettingsPage() {
                   onClick={() => setSelectedModel(model.id)}
                   className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg text-left"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-lg">
-                    {model.icon}
+                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-base font-semibold text-foreground">
+                    {model.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium">{model.name}</h4>

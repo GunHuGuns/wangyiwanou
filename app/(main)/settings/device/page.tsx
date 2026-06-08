@@ -18,6 +18,7 @@ import {
 import { PlushDevice } from '@/lib/types'
 import { plushTypeIcons } from '@/lib/mock-data'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 export default function DeviceSettingsPage() {
   const router = useRouter()
@@ -103,11 +104,14 @@ export default function DeviceSettingsPage() {
                 </p>
                 <p className="text-xs text-muted-foreground">网络</p>
               </div>
-              <div className="text-center p-3 bg-muted/50 rounded-xl">
+              <button
+                onClick={() => router.push('/settings/firmware')}
+                className="text-center p-3 bg-muted/50 rounded-xl hover:bg-muted transition-colors"
+              >
                 <Cpu className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
                 <p className="text-sm font-medium">{device.firmwareVersion}</p>
-                <p className="text-xs text-muted-foreground">固件</p>
-              </div>
+                <p className="text-xs text-muted-foreground">固件 ›</p>
+              </button>
             </div>
           </Card>
 
@@ -156,6 +160,7 @@ export default function DeviceSettingsPage() {
                       const updated = { ...device, volume: preset.value }
                       localStorage.setItem('connectedDevice', JSON.stringify(updated))
                     }
+                    toast.success(`音量已设为${preset.label}`)
                   }}
                 >
                   {preset.label}

@@ -211,7 +211,7 @@ export default function FriendDetailPage() {
                 </div>
               </div>
             </Card>
-          )}
+          </Link>
 
           {/* 发送语音 */}
           <Card className="p-4 bg-card">

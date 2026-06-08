@@ -1,19 +1,23 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/common/page-header'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/contexts/auth-context'
 import {
   ChevronRight,
-  User,
   Volume2,
   Brain,
-  Trash2,
   Bluetooth,
   Info,
   Sparkles,
-  Shield,
+  Cpu,
+  LogOut,
+  User,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const settingsGroups = [
   {
@@ -32,6 +36,13 @@ const settingsGroups = [
         label: '设备控制',
         description: '音量调节、设备信息',
         color: 'from-cute-mint to-cute-sky',
+      },
+      {
+        href: '/settings/firmware',
+        icon: Cpu,
+        label: '固件升级',
+        description: '检查并升级玩偶固件',
+        color: 'from-cute-coral to-cute-orange',
       },
       {
         href: '/settings/memory',
@@ -62,19 +73,41 @@ const settingsGroups = [
         icon: Info,
         label: '关于',
         description: '应用版本和帮助',
-        color: 'from-muted-foreground to-muted-foreground',
+        color: 'from-cute-lavender to-cute-pink',
       },
     ],
   },
 ]
 
 export default function SettingsPage() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    toast.success('已退出登录')
+    router.push('/auth')
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cute-cream via-background to-cute-lavender/10 pb-20">
       <PageHeader title="设置" />
 
       <div className="px-4 py-4">
         <div className="max-w-lg mx-auto space-y-6">
+          {/* Account card */}
+          <Card className="flex items-center gap-4 p-4 border-0 bg-card/80">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-cute-coral flex items-center justify-center">
+              <User className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold truncate">{user?.username || '小主人'}</h4>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email || '未登录'}
+              </p>
+            </div>
+          </Card>
+
           {settingsGroups.map((group) => (
             <div key={group.title}>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
@@ -104,6 +137,16 @@ export default function SettingsPage() {
               </Card>
             </div>
           ))}
+
+          {/* Logout */}
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="w-full h-12 text-cute-coral border-cute-coral/30 hover:bg-cute-coral/10 hover:text-cute-coral"
+          >
+            <LogOut className="w-5 h-5 mr-2" />
+            退出登录
+          </Button>
         </div>
       </div>
     </div>
