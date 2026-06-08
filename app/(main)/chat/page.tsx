@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Send, Mic, Keyboard, Sparkles, Settings, Play } from 'lucide-react'
 import { ChatMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { useDevice, isDeviceUsable } from '@/lib/hooks/use-device'
+import { DeviceStatusBanner } from '@/components/common/device-status-banner'
 import Link from 'next/link'
 
 const initialMessages: ChatMessage[] = [
@@ -29,6 +31,8 @@ const textResponses = [
 ]
 
 export default function ChatPage() {
+  const { device, loaded } = useDevice()
+  const usable = isDeviceUsable(device)
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [inputValue, setInputValue] = useState('')
   // 输入模式：文字 / 语音
@@ -40,6 +44,9 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recordTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  // 用 ref 跟踪录音状态与时长，避免事件回调闭包拿到旧值导致"按住说话失效"
+  const recordingRef = useRef(false)
+  const secondsRef = useRef(0)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -96,24 +103,33 @@ export default function ChatPage() {
   }
 
   const startRecording = () => {
+    // 防止重复触发
+    if (recordingRef.current) return
+    recordingRef.current = true
+    secondsRef.current = 0
     setIsRecording(true)
     setRecordSeconds(0)
+    if (recordTimer.current) clearInterval(recordTimer.current)
     recordTimer.current = setInterval(() => {
-      setRecordSeconds((s) => {
-        if (s >= 60) {
-          if (recordTimer.current) clearInterval(recordTimer.current)
-          return s
-        }
-        return s + 1
-      })
+      secondsRef.current = Math.min(60, secondsRef.current + 1)
+      setRecordSeconds(secondsRef.current)
+      if (secondsRef.current >= 60) {
+        finishRecording(true)
+      }
     }, 1000)
   }
 
   const finishRecording = (send: boolean) => {
-    if (recordTimer.current) clearInterval(recordTimer.current)
-    const duration = Math.max(1, recordSeconds)
+    if (!recordingRef.current) return
+    recordingRef.current = false
+    if (recordTimer.current) {
+      clearInterval(recordTimer.current)
+      recordTimer.current = null
+    }
+    const duration = Math.max(1, secondsRef.current)
     setIsRecording(false)
     setRecordSeconds(0)
+    secondsRef.current = 0
     if (!send) return
     setMessages((prev) => [
       ...prev,
@@ -141,8 +157,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-[100dvh] pb-[72px] bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
       <PageHeader
         title="和玩偶对话"
-        subtitle="温暖小熊在线"
-        rightElement={
+        rightAction={
           <Link href="/settings/character">
             <Button variant="ghost" size="icon" className="rounded-full">
               <Settings className="w-5 h-5" />
@@ -258,80 +273,87 @@ export default function ChatPage() {
       </ScrollArea>
 
       {/* 输入区 */}
-      <div className="border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 safe-area-pb">
-        <div className="max-w-lg mx-auto flex items-end gap-2">
-          {/* 文字 / 语音 模式切换 */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full flex-shrink-0"
-            onClick={() => {
-              setInputMode((m) => (m === 'text' ? 'voice' : 'text'))
-              setIsRecording(false)
-            }}
-            aria-label={inputMode === 'text' ? '切换到语音输入' : '切换到键盘输入'}
-          >
-            {inputMode === 'text' ? (
-              <Mic className="w-5 h-5" />
-            ) : (
-              <Keyboard className="w-5 h-5" />
-            )}
-          </Button>
-
-          {inputMode === 'text' ? (
-            <>
-              <div className="flex-1 relative">
-                <textarea
-                  ref={inputRef}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="输入消息..."
-                  className="w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring max-h-32"
-                  rows={1}
-                  style={{ minHeight: '44px' }}
-                />
-              </div>
-              <Button
-                onClick={handleSend}
-                disabled={!inputValue.trim() || isTyping}
-                size="icon"
-                className="rounded-full bg-gradient-to-br from-primary to-cute-coral flex-shrink-0"
-              >
-                <Send className="w-5 h-5" />
-              </Button>
-            </>
-          ) : (
-            /* 按住说话 */
-            <button
-              onMouseDown={startRecording}
-              onMouseUp={() => isRecording && finishRecording(true)}
-              onMouseLeave={() => isRecording && finishRecording(false)}
-              onTouchStart={(e) => {
-                e.preventDefault()
-                startRecording()
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault()
-                if (isRecording) finishRecording(true)
-              }}
-              className={cn(
-                'flex-1 h-11 rounded-2xl border border-input text-sm font-medium select-none transition-colors',
-                isRecording
-                  ? 'bg-destructive text-destructive-foreground'
-                  : 'bg-background text-foreground'
-              )}
-            >
-              {isRecording ? `松开发送 · ${recordSeconds}″` : '按住 说话'}
-            </button>
-          )}
-        </div>
-
-        {isRecording && (
-          <div className="max-w-lg mx-auto mt-2 flex items-center justify-center gap-2 text-destructive">
-            <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-            <span className="text-sm">正在录音... 松开发送，移开取消</span>
+      <div className="border-t border-border bg-card/95 backdrop-blur-md px-4 py-3">
+        {loaded && !usable ? (
+          <div className="max-w-lg mx-auto text-center text-sm text-muted-foreground py-2">
+            玩偶{device ? '当前不在线' : '未连接'}，请先连接后再聊天
           </div>
+        ) : (
+          <>
+            <div className="max-w-lg mx-auto flex items-end gap-2">
+              {/* 文字 / 语音 模式切换 */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full flex-shrink-0"
+                onClick={() => {
+                  setInputMode((m) => (m === 'text' ? 'voice' : 'text'))
+                  setIsRecording(false)
+                }}
+                aria-label={inputMode === 'text' ? '切换到语音输入' : '切换到键盘输入'}
+              >
+                {inputMode === 'text' ? (
+                  <Mic className="w-5 h-5" />
+                ) : (
+                  <Keyboard className="w-5 h-5" />
+                )}
+              </Button>
+
+              {inputMode === 'text' ? (
+                <>
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={inputRef}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="输入消息..."
+                      className="w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring max-h-32"
+                      rows={1}
+                      style={{ minHeight: '44px' }}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSend}
+                    disabled={!inputValue.trim() || isTyping}
+                    size="icon"
+                    className="rounded-full bg-gradient-to-br from-primary to-cute-coral flex-shrink-0"
+                  >
+                    <Send className="w-5 h-5" />
+                  </Button>
+                </>
+              ) : (
+                /* 按住说话 */
+                <button
+                  onPointerDown={(e) => {
+                    e.preventDefault()
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    startRecording()
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault()
+                    finishRecording(true)
+                  }}
+                  onPointerCancel={() => finishRecording(false)}
+                  className={cn(
+                    'flex-1 h-11 rounded-2xl border border-input text-sm font-medium select-none touch-none transition-colors',
+                    isRecording
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-background text-foreground active:bg-muted'
+                  )}
+                >
+                  {isRecording ? `松开发送 · ${recordSeconds}″` : '按住 说话'}
+                </button>
+              )}
+            </div>
+
+            {isRecording && (
+              <div className="max-w-lg mx-auto mt-2 flex items-center justify-center gap-2 text-destructive">
+                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                <span className="text-sm">正在录音... 松开发送</span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
