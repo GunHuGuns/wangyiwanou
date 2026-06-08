@@ -124,22 +124,24 @@ export default function MemorySettingsPage() {
                   open={dialogType === option.id}
                   onOpenChange={(open) => setDialogType(open ? option.id : null)}
                 >
-                  <DialogTrigger asChild>
-                    <button className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg text-left">
-                      <div
-                        className={`w-10 h-10 rounded-xl bg-gradient-to-br ${option.color} flex items-center justify-center`}
-                      >
-                        <option.icon className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium">{option.title}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {option.description}
-                        </p>
-                      </div>
-                      <Trash2 className="w-5 h-5 text-muted-foreground/50" />
-                    </button>
-                  </DialogTrigger>
+                  <DialogTrigger
+                    render={
+                      <button className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg text-left">
+                        <div
+                          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${option.color} flex items-center justify-center`}
+                        >
+                          <option.icon className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium">{option.title}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {option.description}
+                          </p>
+                        </div>
+                        <Trash2 className="w-5 h-5 text-muted-foreground/50" />
+                      </button>
+                    }
+                  />
                   <DialogContent className="max-w-sm mx-4 rounded-2xl">
                     <DialogHeader>
                       <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-2">

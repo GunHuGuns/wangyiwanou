@@ -66,12 +66,14 @@ export default function CharacterSettingsPage() {
                 选择角色
               </h3>
               <Dialog open={isCreating} onOpenChange={setIsCreating}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    <Plus className="w-4 h-4" />
-                    自定义
-                  </Button>
-                </DialogTrigger>
+                <DialogTrigger
+                  render={
+                    <Button variant="ghost" size="sm" className="gap-1">
+                      <Plus className="w-4 h-4" />
+                      自定义
+                    </Button>
+                  }
+                />
                 <DialogContent className="max-w-sm mx-4 rounded-2xl">
                   <DialogHeader>
                     <DialogTitle>创建自定义角色</DialogTitle>

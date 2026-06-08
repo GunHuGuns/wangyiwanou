@@ -184,12 +184,14 @@ export default function AlarmPage() {
 
         {/* 添加闹钟按钮 */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full bg-primary hover:bg-primary/90">
-              <Plus className="w-5 h-5 mr-2" />
-              添加闹钟
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger
+            render={
+              <Button className="w-full bg-primary hover:bg-primary/90">
+                <Plus className="w-5 h-5 mr-2" />
+                添加闹钟
+              </Button>
+            }
+          />
           <DialogContent className="bg-card">
             <DialogHeader>
               <DialogTitle>添加新闹钟</DialogTitle>
