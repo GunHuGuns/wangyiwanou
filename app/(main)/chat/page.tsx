@@ -150,6 +150,10 @@ export default function ChatPage() {
     setTimeout(() => setPlayingId(null), (msg.duration || 2) * 300)
   }
 
+  // 仅在客户端挂载后渲染时间，避免服务端/客户端时间不一致导致的 hydration 报错
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 
@@ -243,7 +247,7 @@ export default function ChatPage() {
                       : 'text-muted-foreground'
                   )}
                 >
-                  {formatTime(message.timestamp)}
+                  {mounted ? formatTime(message.timestamp) : ''}
                 </p>
               </div>
             </div>

@@ -20,8 +20,9 @@ import {
 } from 'lucide-react'
 import { plushTypeIcons } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
-import { useDevice } from '@/lib/hooks/use-device'
+import { useDevice, isDeviceUsable } from '@/lib/hooks/use-device'
 import { DeviceStatusBanner } from '@/components/common/device-status-banner'
+import { toast } from 'sonner'
 
 const quickActions = [
   {
@@ -30,6 +31,7 @@ const quickActions = [
     label: '开始对话',
     color: 'from-primary to-cute-coral',
     description: '和玩偶聊天',
+    requiresDevice: true,
   },
   {
     href: '/diary',
@@ -37,6 +39,7 @@ const quickActions = [
     label: '心情日记',
     color: 'from-cute-orange to-cute-pink',
     description: '查看今日日记',
+    requiresDevice: false,
   },
   {
     href: '/travel',
@@ -44,6 +47,7 @@ const quickActions = [
     label: '云旅行',
     color: 'from-cute-mint to-cute-sky',
     description: '探索新地方',
+    requiresDevice: false,
   },
   {
     href: '/friends',
@@ -51,12 +55,13 @@ const quickActions = [
     label: '交朋友',
     color: 'from-cute-lavender to-cute-pink',
     description: '碰一碰交友',
+    requiresDevice: true,
   },
 ]
 
 const moreFeatures = [
-  { href: '/alarm', icon: Clock, label: '闹钟', badge: '3个' },
-  { href: '/settings/character', icon: Sparkles, label: '角色切换' },
+  { href: '/alarm', icon: Clock, label: '闹钟', badge: '3个', requiresDevice: true },
+  { href: '/settings/character', icon: Sparkles, label: '角色切换', requiresDevice: true },
 ]
 
 export default function HomePage() {
@@ -82,6 +87,7 @@ export default function HomePage() {
 
   const isLowBattery = device?.status === 'low-battery'
   const isOffline = device?.status === 'disconnected' || device?.status === 'bluetooth-off'
+  const usable = isDeviceUsable(device)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
@@ -184,24 +190,58 @@ export default function HomePage() {
             快捷功能
           </h3>
           <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => (
-              <Link key={action.href} href={action.href}>
-                <Card className="p-4 h-full hover:shadow-md transition-all duration-200 cute-hover border-0 bg-card/80">
+            {quickActions.map((action) => {
+              const disabled = action.requiresDevice && !usable
+              const cardInner = (
+                <Card
+                  className={cn(
+                    'p-4 h-full transition-all duration-200 border-0 bg-card/80',
+                    disabled
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:shadow-md cute-hover'
+                  )}
+                >
                   <div
                     className={cn(
                       'w-11 h-11 rounded-2xl flex items-center justify-center mb-3 bg-gradient-to-br',
-                      action.color
+                      action.color,
+                      disabled && 'grayscale'
                     )}
                   >
                     <action.icon className="w-5 h-5 text-white" />
                   </div>
                   <h4 className="font-semibold mb-0.5">{action.label}</h4>
                   <p className="text-xs text-muted-foreground">
-                    {action.description}
+                    {disabled ? '需连接玩偶' : action.description}
                   </p>
                 </Card>
-              </Link>
-            ))}
+              )
+
+              if (disabled) {
+                return (
+                  <button
+                    key={action.href}
+                    type="button"
+                    className="text-left"
+                    onClick={() =>
+                      toast(
+                        device
+                          ? '玩偶当前不在线，请重新连接后使用'
+                          : '请先连接玩偶后使用'
+                      )
+                    }
+                  >
+                    {cardInner}
+                  </button>
+                )
+              }
+
+              return (
+                <Link key={action.href} href={action.href}>
+                  {cardInner}
+                </Link>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -213,24 +253,56 @@ export default function HomePage() {
             更多功能
           </h3>
           <Card className="divide-y divide-border border-0 bg-card/80">
-            {moreFeatures.map((feature) => (
-              <Link
-                key={feature.href}
-                href={feature.href}
-                className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-              >
-                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-                  <feature.icon className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <span className="flex-1 font-medium">{feature.label}</span>
-                {feature.badge && (
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                    {feature.badge}
-                  </span>
-                )}
-                <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
-              </Link>
-            ))}
+            {moreFeatures.map((feature) => {
+              const disabled = feature.requiresDevice && !usable
+              const rowInner = (
+                <>
+                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                    <feature.icon className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <span className="flex-1 font-medium">{feature.label}</span>
+                  {disabled ? (
+                    <span className="text-xs text-muted-foreground">需连接玩偶</span>
+                  ) : (
+                    feature.badge && (
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        {feature.badge}
+                      </span>
+                    )
+                  )}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
+                </>
+              )
+
+              if (disabled) {
+                return (
+                  <button
+                    key={feature.href}
+                    type="button"
+                    onClick={() =>
+                      toast(
+                        device
+                          ? '玩偶当前不在线，请重新连接后使用'
+                          : '请先连接玩偶后使用'
+                      )
+                    }
+                    className="w-full flex items-center gap-4 p-4 opacity-50 cursor-not-allowed text-left first:rounded-t-lg last:rounded-b-lg"
+                  >
+                    {rowInner}
+                  </button>
+                )
+              }
+
+              return (
+                <Link
+                  key={feature.href}
+                  href={feature.href}
+                  className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                >
+                  {rowInner}
+                </Link>
+              )
+            })}
           </Card>
         </div>
       </div>
