@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,7 @@ interface WifiNetwork {
   secured: boolean
 }
 
-export default function WifiPage() {
+function WifiContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const deviceName = searchParams.get("deviceName") || "玩偶"
@@ -42,19 +42,7 @@ export default function WifiPage() {
     if (!selectedNetwork) return
     setIsConnecting(true)
     setTimeout(() => {
-      // 持久化已连接设备信息，供主应用读取
-      const device = {
-        id: "plush-1",
-        name: deviceName,
-        type: "bear",
-        macAddress: "A1:B2:C3:D4:E5:F6",
-        firmwareVersion: "1.2.0",
-        batteryLevel: 86,
-        isOnline: true,
-        wifiSSID: selectedNetwork.ssid,
-      }
-      localStorage.setItem("connectedDevice", JSON.stringify(device))
-      router.push(`/connect/success?device=${encodeURIComponent(deviceName)}&ssid=${encodeURIComponent(selectedNetwork.ssid)}`)
+      router.push("/connect/success")
     }, 2000)
   }
 
@@ -202,5 +190,19 @@ export default function WifiPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function WifiPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </main>
+      }
+    >
+      <WifiContent />
+    </Suspense>
   )
 }

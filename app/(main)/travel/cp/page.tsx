@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { PageHeader } from "@/components/common/page-header"
 import { Card } from "@/components/ui/card"
@@ -34,7 +34,7 @@ const cpTravelMemories = [
   },
 ]
 
-export default function CPTravelPage() {
+function CPTravelContent() {
   const searchParams = useSearchParams()
   const friendId = searchParams.get("friendId")
   const friend = mockFriends.find(f => f.id === friendId) || mockFriends[0]
@@ -179,5 +179,22 @@ export default function CPTravelPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CPTravelPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col min-h-screen bg-background pb-20">
+          <PageHeader title="CP旅行" showBack />
+          <div className="flex-1 flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+          </div>
+        </div>
+      }
+    >
+      <CPTravelContent />
+    </Suspense>
   )
 }

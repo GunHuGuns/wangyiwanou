@@ -31,7 +31,7 @@ export interface Character {
   name: string
   description: string
   personality: string
-  voice: "cute" | "gentle" | "energetic" | "calm"
+  voiceTone: string
   avatar: string
   isCustom: boolean
   systemPrompt?: string
@@ -59,13 +59,17 @@ export interface Message {
 // 日记类型
 export interface Diary {
   id: string
-  date: string
+  date: Date
   title: string
   content: string
   mood: "happy" | "sad" | "excited" | "calm" | "tired"
-  highlights: string[]
+  summary: string
+  keywords: string[]
   createdAt: Date
 }
+
+// 日记条目别名（与页面命名保持一致）
+export type DiaryEntry = Diary
 
 // 好友类型
 export interface Friend {
@@ -118,13 +122,19 @@ export interface Memory {
   importance: number
 }
 
+// 旅行活动类型
+export interface TravelActivity {
+  id: string
+  type: "food" | "attraction" | "entertainment" | "accommodation"
+  name: string
+  description: string
+  location: string
+}
+
 // 旅行计划类型
 export interface TravelPlan {
   id: string
   destination: string
-  startDate: string
-  endDate: string
-  attractions: string[]
-  foods: string[]
-  tips: string[]
+  days: number
+  activities: TravelActivity[]
 }
