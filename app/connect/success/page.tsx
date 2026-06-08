@@ -11,6 +11,21 @@ export default function SuccessPage() {
   const [showContent, setShowContent] = useState(false)
 
   useEffect(() => {
+    // 持久化已连接设备，保证主应用能识别连接状态
+    if (typeof window !== "undefined" && !localStorage.getItem("connectedDevice")) {
+      const device = {
+        id: "plush-1",
+        name: "小棉花",
+        type: "bear",
+        macAddress: "A1:B2:C3:D4:E5:F6",
+        firmwareVersion: "1.2.0",
+        batteryLevel: 86,
+        isOnline: true,
+        wifiSSID: "HomeWiFi",
+      }
+      localStorage.setItem("connectedDevice", JSON.stringify(device))
+    }
+
     // 触发庆祝动画
     confetti({
       particleCount: 100,
@@ -18,7 +33,7 @@ export default function SuccessPage() {
       origin: { y: 0.6 },
       colors: ["#FF9B8E", "#FFB347", "#87CEEB"],
     })
-    
+
     setTimeout(() => setShowContent(true), 300)
   }, [])
 
