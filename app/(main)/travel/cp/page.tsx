@@ -41,14 +41,14 @@ const cpTravelMemories = [
     id: "1",
     location: "西湖",
     date: "2024-01-15",
-    image: "",
+    image: "/cp-travel/xihu.png",
     description: "和好友在西湖边散步，断桥残雪真美~",
   },
   {
     id: "2",
     location: "故宫",
     date: "2024-01-10",
-    image: "",
+    image: "/cp-travel/gugong.png",
     description: "故宫的红墙金瓦，我们拍了很多合照！",
   },
 ]
@@ -90,7 +90,7 @@ function CPTravelContent() {
         id: `m-${Date.now()}`,
         location: chosenDest.name,
         date: new Date().toISOString().slice(0, 10),
-        image: "",
+        image: "/cp-travel/generic.png",
         description: `和${friend.name}一起来到${chosenDest.name}，${chosenDest.desc}，留下了甜蜜合照~`,
       }
       setMemories((prev) => [newMemory, ...prev])
@@ -202,10 +202,18 @@ function CPTravelContent() {
             {memories.map((memory) => (
               <Card key={memory.id} className="overflow-hidden bg-card">
                 <div className="aspect-video bg-muted flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">{memory.location} 合照</p>
-                  </div>
+                  {memory.image ? (
+                    <img
+                      src={memory.image || "/placeholder.svg"}
+                      alt={`${memory.location} 合照`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">{memory.location} 合照</p>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
