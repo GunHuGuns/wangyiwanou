@@ -1,4 +1,4 @@
-import { Character, AIModel, DiaryEntry, Friend, NFCSpot, TravelPostcard, TravelPlan, PlushType } from "@/lib/types"
+import { Character, AIModel, DiaryEntry, Friend, TravelPostcard, TravelPlan, PlushType } from "@/lib/types"
 
 // 玩偶类型图标
 export const plushTypeIcons: Record<PlushType, string> = {
@@ -158,34 +158,6 @@ export const mockFriends: Friend[] = [
     lastMeet: "1周前",
     isCp: false,
     friendType: "family",
-  },
-]
-
-// NFC景点数据
-export const mockNFCSpots: NFCSpot[] = [
-  {
-    id: "1",
-    name: "西湖断桥",
-    location: "杭州西湖",
-    description: "断桥残雪是西湖十景之一",
-    nfcId: "NFC001",
-    featured: true,
-  },
-  {
-    id: "2",
-    name: "雷峰塔",
-    location: "杭州西湖",
-    description: "白娘子传说的发源地",
-    nfcId: "NFC002",
-    featured: true,
-  },
-  {
-    id: "3",
-    name: "灵隐寺",
-    location: "杭州",
-    description: "千年古刹，香火鼎盛",
-    nfcId: "NFC003",
-    featured: false,
   },
 ]
 
