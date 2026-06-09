@@ -24,16 +24,10 @@ export default function FriendsPage() {
 
       <div className="flex-1 p-4 space-y-4">
         {/* 好友统计 */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card className="p-3 text-center bg-card">
             <div className="text-2xl font-bold text-primary">{acceptedFriends.length}</div>
             <div className="text-xs text-muted-foreground">好友总数</div>
-          </Card>
-          <Card className="p-3 text-center bg-card">
-            <div className="text-2xl font-bold text-secondary">
-              {acceptedFriends.filter((f) => f.friendType === "lover").length}
-            </div>
-            <div className="text-xs text-muted-foreground">情侣好友</div>
           </Card>
           <Card className="p-3 text-center bg-card">
             <div className="text-2xl font-bold text-accent">12</div>

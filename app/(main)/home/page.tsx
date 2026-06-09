@@ -8,59 +8,21 @@ import {
   BatteryLow,
   Wifi,
   WifiOff,
-  MessageCircle,
-  Map,
-  Users,
   BookOpen,
-  Clock,
   Sparkles,
   ChevronRight,
   Volume2,
+  VolumeX,
   PlugZap,
 } from 'lucide-react'
-import { plushTypeIcons } from '@/lib/mock-data'
+import { Slider } from '@/components/ui/slider'
+import { plushTypeIcons, mockDiaryEntries, moodIcons } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
-import { useDevice } from '@/lib/hooks/use-device'
+import { useDevice, isDeviceUsable } from '@/lib/hooks/use-device'
 import { DeviceStatusBanner } from '@/components/common/device-status-banner'
 
-const quickActions = [
-  {
-    href: '/chat',
-    icon: MessageCircle,
-    label: '开始对话',
-    color: 'from-primary to-cute-coral',
-    description: '和玩偶聊天',
-  },
-  {
-    href: '/diary',
-    icon: BookOpen,
-    label: '心情日记',
-    color: 'from-cute-orange to-cute-pink',
-    description: '查看今日日记',
-  },
-  {
-    href: '/travel',
-    icon: Map,
-    label: '云旅行',
-    color: 'from-cute-mint to-cute-sky',
-    description: '探索新地方',
-  },
-  {
-    href: '/friends',
-    icon: Users,
-    label: '交朋友',
-    color: 'from-cute-lavender to-cute-pink',
-    description: '查看玩偶好友',
-  },
-]
-
-const moreFeatures = [
-  { href: '/alarm', icon: Clock, label: '闹钟', badge: '3个' },
-  { href: '/settings/character', icon: Sparkles, label: '角色切换' },
-]
-
 export default function HomePage() {
-  const { device, loaded } = useDevice()
+  const { device, loaded, update } = useDevice()
   const [greeting, setGreeting] = useState('')
 
   useEffect(() => {
@@ -72,6 +34,11 @@ export default function HomePage() {
     else setGreeting('晚上好')
   }, [])
 
+  const handleVolumeChange = (value: number[] | number) => {
+    const newVolume = Array.isArray(value) ? value[0] : value
+    update({ volume: newVolume })
+  }
+
   if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -82,6 +49,8 @@ export default function HomePage() {
 
   const isLowBattery = device?.status === 'low-battery'
   const isOffline = device?.status === 'disconnected' || device?.status === 'bluetooth-off'
+  const todayDiary = mockDiaryEntries[0]
+  const volume = device?.volume ?? 60
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
@@ -177,63 +146,90 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Quick Actions Grid */}
+      {/* 今日日记外显 */}
       <div className="px-4 mb-6">
         <div className="max-w-lg mx-auto">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
-            快捷功能
+            心情日记
           </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => (
-              <Link key={action.href} href={action.href}>
-                <Card className="p-4 h-full hover:shadow-md transition-all duration-200 cute-hover border-0 bg-card/80">
-                  <div
-                    className={cn(
-                      'w-11 h-11 rounded-2xl flex items-center justify-center mb-3 bg-gradient-to-br',
-                      action.color
-                    )}
-                  >
-                    <action.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <h4 className="font-semibold mb-0.5">{action.label}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {action.description}
-                  </p>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* More Features */}
-      <div className="px-4 mb-6">
-        <div className="max-w-lg mx-auto">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
-            更多功能
-          </h3>
-          <Card className="divide-y divide-border border-0 bg-card/80">
-            {moreFeatures.map((feature) => (
-              <Link
-                key={feature.href}
-                href={feature.href}
-                className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-              >
-                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-                  <feature.icon className="w-5 h-5 text-muted-foreground" />
+          <Card className="p-5 border-0 bg-card/80">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-2xl flex-shrink-0">
+                {todayDiary ? moodIcons[todayDiary.mood] : <BookOpen className="w-6 h-6 text-muted-foreground" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-semibold">今日日记</h4>
+                  {todayDiary && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {todayDiary.title}
+                    </span>
+                  )}
                 </div>
-                <span className="flex-1 font-medium">{feature.label}</span>
-                {feature.badge && (
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                    {feature.badge}
-                  </span>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {todayDiary?.summary || '今天还没有日记哦，快去和玩偶聊天吧！'}
+                </p>
+                {todayDiary && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {todayDiary.keywords.slice(0, 3).map((keyword) => (
+                      <span
+                        key={keyword}
+                        className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
                 )}
-                <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
-              </Link>
-            ))}
+              </div>
+            </div>
+            <Link
+              href="/diary"
+              className="mt-4 flex items-center justify-center gap-1 text-sm font-medium text-primary"
+            >
+              查看更多日记
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </Card>
         </div>
       </div>
+
+      {/* 音量调节 */}
+      {device && (
+        <div className="px-4 mb-6">
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
+              音量调节
+            </h3>
+            <Card className="p-5 border-0 bg-card/80">
+              <div className="flex items-center gap-4">
+                {volume === 0 ? (
+                  <VolumeX className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-primary flex-shrink-0" />
+                )}
+                <Slider
+                  value={[volume]}
+                  onValueChange={handleVolumeChange}
+                  max={100}
+                  step={1}
+                  className="flex-1"
+                  disabled={isOffline}
+                  aria-label="玩偶音量"
+                />
+                <span className="w-10 text-right text-sm tabular-nums text-muted-foreground">
+                  {volume}%
+                </span>
+              </div>
+              {isOffline && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  玩偶当前离线，连接后可调节音量
+                </p>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Today's Tip */}
       <div className="px-4 pb-8">

@@ -4,12 +4,12 @@ import { useState, useRef, useEffect } from 'react'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Send, Mic, Keyboard, Sparkles, Settings, Play } from 'lucide-react'
+import { Sparkles, Play, Trash2 } from 'lucide-react'
 import { ChatMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useDevice, isDeviceUsable } from '@/lib/hooks/use-device'
 import { DeviceStatusBanner } from '@/components/common/device-status-banner'
-import Link from 'next/link'
+import { toast } from 'sonner'
 
 const initialMessages: ChatMessage[] = [
   {
@@ -21,32 +21,13 @@ const initialMessages: ChatMessage[] = [
   },
 ]
 
-const textResponses = [
-  '嗯嗯，我明白你的意思了！',
-  '哇，听起来很有趣呢！',
-  '我也这么觉得！你说得太对了~',
-  '让我想想...其实我觉得每个人都有自己的想法，重要的是跟随自己的内心呢！',
-  '你今天心情怎么样呀？有什么想和我分享的吗？',
-  '嘻嘻，和你聊天真开心！',
-]
-
 export default function ChatPage() {
   const { device, loaded } = useDevice()
   const usable = isDeviceUsable(device)
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
-  const [inputValue, setInputValue] = useState('')
-  // 输入模式：文字 / 语音
-  const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordSeconds, setRecordSeconds] = useState(0)
-  const [isTyping, setIsTyping] = useState(false)
+  const [isTyping] = useState(false)
   const [playingId, setPlayingId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-  const recordTimer = useRef<ReturnType<typeof setInterval> | null>(null)
-  // 用 ref 跟踪录音状态与时长，避免事件回调闭包拿到旧值导致"按住说话失效"
-  const recordingRef = useRef(false)
-  const secondsRef = useRef(0)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,95 +35,10 @@ export default function ChatPage() {
     }
   }, [messages, isTyping])
 
-  useEffect(() => {
-    return () => {
-      if (recordTimer.current) clearInterval(recordTimer.current)
-    }
-  }, [])
-
-  const replyFromAssistant = () => {
-    setIsTyping(true)
-    setTimeout(() => {
-      const randomResponse =
-        textResponses[Math.floor(Math.random() * textResponses.length)]
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          content: randomResponse,
-          role: 'assistant',
-          timestamp: new Date(),
-          kind: 'text',
-        },
-      ])
-      setIsTyping(false)
-    }, 1000 + Math.random() * 1000)
-  }
-
-  const handleSend = () => {
-    if (!inputValue.trim()) return
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        content: inputValue.trim(),
-        role: 'user',
-        timestamp: new Date(),
-        kind: 'text',
-      },
-    ])
-    setInputValue('')
-    replyFromAssistant()
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
-  const startRecording = () => {
-    // 防止重复触发
-    if (recordingRef.current) return
-    recordingRef.current = true
-    secondsRef.current = 0
-    setIsRecording(true)
-    setRecordSeconds(0)
-    if (recordTimer.current) clearInterval(recordTimer.current)
-    recordTimer.current = setInterval(() => {
-      secondsRef.current = Math.min(60, secondsRef.current + 1)
-      setRecordSeconds(secondsRef.current)
-      if (secondsRef.current >= 60) {
-        finishRecording(true)
-      }
-    }, 1000)
-  }
-
-  const finishRecording = (send: boolean) => {
-    if (!recordingRef.current) return
-    recordingRef.current = false
-    if (recordTimer.current) {
-      clearInterval(recordTimer.current)
-      recordTimer.current = null
-    }
-    const duration = Math.max(1, secondsRef.current)
-    setIsRecording(false)
-    setRecordSeconds(0)
-    secondsRef.current = 0
-    if (!send) return
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        content: '语音消息',
-        role: 'user',
-        timestamp: new Date(),
-        kind: 'voice',
-        duration,
-      },
-    ])
-    replyFromAssistant()
+  const handleClearMessages = () => {
+    setMessages(initialMessages)
+    setPlayingId(null)
+    toast.success('已清除聊天记录')
   }
 
   const playVoice = (msg: ChatMessage) => {
@@ -155,16 +51,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-[100dvh] pb-[72px] bg-gradient-to-br from-cute-cream via-background to-cute-pink/10">
-      <PageHeader
-        title="和玩偶对话"
-        rightAction={
-          <Link href="/settings/character">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <Settings className="w-5 h-5" />
-            </Button>
-          </Link>
-        }
-      />
+      <PageHeader title="和玩偶对话" />
 
       {/* 设备异常时的提示横幅 */}
       {loaded && !usable && (
@@ -272,91 +159,19 @@ export default function ChatPage() {
         </div>
       </ScrollArea>
 
-      {/* 输入区 */}
+      {/* 底部操作区 */}
       <div className="border-t border-border bg-card/95 backdrop-blur-md px-4 py-3">
-        {loaded && !usable ? (
-          <div className="max-w-lg mx-auto text-center text-sm text-muted-foreground py-2">
-            玩偶{device ? '当前不在线' : '未连接'}，请先连接后再聊天
-          </div>
-        ) : (
-          <>
-            <div className="max-w-lg mx-auto flex items-end gap-2">
-              {/* 文字 / 语音 模式切换 */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full flex-shrink-0"
-                onClick={() => {
-                  setInputMode((m) => (m === 'text' ? 'voice' : 'text'))
-                  setIsRecording(false)
-                }}
-                aria-label={inputMode === 'text' ? '切换到语音输入' : '切换到键盘输入'}
-              >
-                {inputMode === 'text' ? (
-                  <Mic className="w-5 h-5" />
-                ) : (
-                  <Keyboard className="w-5 h-5" />
-                )}
-              </Button>
-
-              {inputMode === 'text' ? (
-                <>
-                  <div className="flex-1 relative">
-                    <textarea
-                      ref={inputRef}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="输入消息..."
-                      className="w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring max-h-32"
-                      rows={1}
-                      style={{ minHeight: '44px' }}
-                    />
-                  </div>
-                  <Button
-                    onClick={handleSend}
-                    disabled={!inputValue.trim() || isTyping}
-                    size="icon"
-                    className="rounded-full bg-gradient-to-br from-primary to-cute-coral flex-shrink-0"
-                  >
-                    <Send className="w-5 h-5" />
-                  </Button>
-                </>
-              ) : (
-                /* 按住说话 */
-                <button
-                  onPointerDown={(e) => {
-                    e.preventDefault()
-                    startRecording()
-                    try {
-                      e.currentTarget.setPointerCapture(e.pointerId)
-                    } catch {}
-                  }}
-                  onPointerUp={(e) => {
-                    e.preventDefault()
-                    finishRecording(true)
-                  }}
-                  onPointerCancel={() => finishRecording(false)}
-                  className={cn(
-                    'flex-1 h-11 rounded-2xl border border-input text-sm font-medium select-none touch-none transition-colors',
-                    isRecording
-                      ? 'bg-destructive text-destructive-foreground'
-                      : 'bg-background text-foreground active:bg-muted'
-                  )}
-                >
-                  {isRecording ? `松开发送 · ${recordSeconds}″` : '按住 说话'}
-                </button>
-              )}
-            </div>
-
-            {isRecording && (
-              <div className="max-w-lg mx-auto mt-2 flex items-center justify-center gap-2 text-destructive">
-                <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                <span className="text-sm">正在录音... 松开发送</span>
-              </div>
-            )}
-          </>
-        )}
+        <div className="max-w-lg mx-auto">
+          <Button
+            variant="outline"
+            onClick={handleClearMessages}
+            disabled={messages.length <= 1}
+            className="w-full rounded-2xl h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="w-5 h-5 mr-2" />
+            清除聊天记录
+          </Button>
+        </div>
       </div>
     </div>
   )

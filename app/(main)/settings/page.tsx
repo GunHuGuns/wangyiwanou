@@ -14,7 +14,6 @@ import {
   Brain,
   Bluetooth,
   Info,
-  Sparkles,
   Cpu,
   LogOut,
   Camera,
@@ -26,13 +25,6 @@ const settingsGroups = [
   {
     title: '玩偶设置',
     items: [
-      {
-        href: '/settings/character',
-        icon: Sparkles,
-        label: '角色设置',
-        description: '切换或自定义玩偶角色',
-        color: 'from-primary to-cute-coral',
-      },
       {
         href: '/settings/voice',
         icon: AudioLines,
