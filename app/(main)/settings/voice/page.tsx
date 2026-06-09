@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { DeviceStatusBanner } from '@/components/common/device-status-banner'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
   Mic,
   Square,
   Play,
@@ -19,14 +27,22 @@ import {
   Volume2,
   RotateCcw,
   AudioLines,
+  Check,
+  CreditCard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useDevice, isDeviceUsable } from '@/lib/hooks/use-device'
 import {
   useVoiceClone,
+  readVoiceClone,
+  writeVoiceClone,
   MIN_RECORD_SECONDS,
   MAX_RECORD_SECONDS,
+  PRICE_PER_VOICE,
+  CLONES_PER_CYCLE,
+  SUPPORTED_DIALECTS,
+  getRemainingClones,
 } from '@/lib/hooks/use-voice-clone'
 
 // 朗读提示文本，帮助用户录出更稳定的音色
@@ -42,7 +58,7 @@ function formatTime(sec: number) {
 export default function VoiceClonePage() {
   const { device } = useDevice()
   const usable = isDeviceUsable(device)
-  const { voice, loaded, update, reset } = useVoiceClone()
+  const { voice, loaded, update } = useVoiceClone()
 
   // 录音相关
   const [isRecording, setIsRecording] = useState(false)
@@ -52,6 +68,10 @@ export default function VoiceClonePage() {
   const [isCloning, setIsCloning] = useState(false)
   const [cloneProgress, setCloneProgress] = useState(0)
   const [voiceName, setVoiceName] = useState('')
+  const [dialect, setDialect] = useState<string>('普通话')
+  // 付费弹窗
+  const [payOpen, setPayOpen] = useState(false)
+  const [isPaying, setIsPaying] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -61,8 +81,11 @@ export default function VoiceClonePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    if (loaded) setVoiceName(voice.name || '我的声音')
-  }, [loaded, voice.name])
+    if (loaded) {
+      setVoiceName(voice.name || '我的声音')
+      if (voice.dialect) setDialect(voice.dialect)
+    }
+  }, [loaded, voice.name, voice.dialect])
 
   // 清理资源
   useEffect(() => {
@@ -164,15 +187,43 @@ export default function VoiceClonePage() {
     setIsPlaying(false)
   }
 
-  // 模拟 AI 克隆处理过程
+  // 点击「开始克隆」：先校验录音，再判断是否有剩余次数
   const handleClone = () => {
     if (!audioUrl || seconds < MIN_RECORD_SECONDS) {
       toast.error(`请先录制至少 ${MIN_RECORD_SECONDS} 秒的声音`)
       return
     }
+    // 剩余次数不足，需要付费购买新的计费周期
+    if (getRemainingClones(voice) <= 0) {
+      setPayOpen(true)
+      return
+    }
+    runClone()
+  }
+
+  // 付费购买一个计费周期（15 元，含 5 次克隆额度），完成后立即克隆
+  const handlePayAndClone = () => {
+    setIsPaying(true)
+    setTimeout(() => {
+      const current = readVoiceClone()
+      writeVoiceClone({ ...current, paidCycles: current.paidCycles + 1 })
+      setIsPaying(false)
+      setPayOpen(false)
+      toast.success(`支付成功，已获得 ${CLONES_PER_CYCLE} 次克隆额度`)
+      runClone()
+    }, 1200)
+  }
+
+  // 模拟 AI 克隆处理过程
+  const runClone = () => {
     setIsCloning(true)
     setCloneProgress(0)
-    update({ status: 'cloning', durationSec: seconds, name: voiceName.trim() || '我的声音' })
+    update({
+      status: 'cloning',
+      durationSec: seconds,
+      dialect,
+      name: voiceName.trim() || '我的声音',
+    })
 
     const interval = setInterval(() => {
       setCloneProgress((p) => {
@@ -181,11 +232,15 @@ export default function VoiceClonePage() {
           clearInterval(interval)
           setTimeout(() => {
             setIsCloning(false)
-            update({
+            const current = readVoiceClone()
+            writeVoiceClone({
+              ...current,
               status: 'ready',
               applied: true,
               durationSec: seconds,
+              dialect,
               name: voiceName.trim() || '我的声音',
+              cloneCount: current.cloneCount + 1,
               createdAt: new Date().toISOString(),
             })
             toast.success('声音克隆完成，已应用到玩偶发音')
@@ -198,9 +253,10 @@ export default function VoiceClonePage() {
   }
 
   const handleReClone = () => {
-    reset()
+    // 保留已购买的计费周期与已用次数，仅回到录制状态
+    update({ status: 'none', applied: false })
     discardRecording()
-    toast('已清除克隆音色，可重新录制')
+    toast('可重新录制并克隆新音色')
   }
 
   const toggleApply = (checked: boolean) => {

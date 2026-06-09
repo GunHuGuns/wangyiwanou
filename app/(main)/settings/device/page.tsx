@@ -61,8 +61,8 @@ export default function DeviceSettingsPage() {
     if (device) setVolume(device.volume || 70)
   }, [device])
 
-  const handleVolumeChange = (value: number[]) => {
-    const newVolume = value[0]
+  const handleVolumeChange = (value: number[] | number) => {
+    const newVolume = Array.isArray(value) ? value[0] : value
     setVolume(newVolume)
     if (newVolume > 0) setIsMuted(false)
     update({ volume: newVolume })
