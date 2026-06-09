@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { PageHeader } from '@/components/common/page-header'
 import { Card } from '@/components/ui/card'
-import { ChevronRight, Image, Cloud, MapPin, Nfc, Plane } from 'lucide-react'
+import { ChevronRight, Image, Cloud, MapPin, Plane } from 'lucide-react'
 
 const travelFeatures = [
   {
@@ -27,14 +27,6 @@ const travelFeatures = [
     title: '旅行规划',
     description: 'AI帮你规划旅行行程',
     color: 'from-cute-lavender to-cute-pink',
-  },
-  {
-    href: '/travel/nfc',
-    icon: Nfc,
-    title: 'NFC实地打卡',
-    description: '景点打卡收集徽章',
-    color: 'from-primary to-cute-coral',
-    badge: '2个新地点',
   },
 ]
 
@@ -92,14 +84,10 @@ export default function TravelPage() {
           {/* Stats */}
           <Card className="p-4 bg-card/80 border-0">
             <h3 className="font-semibold mb-3">旅行统计</h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold text-primary">3</p>
                 <p className="text-xs text-muted-foreground">明信片</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-cute-mint">2</p>
-                <p className="text-xs text-muted-foreground">打卡地点</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-cute-orange">1</p>

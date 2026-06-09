@@ -112,16 +112,6 @@ export interface TravelPostcard {
   isRead: boolean
 }
 
-// NFC景点类型
-export interface NFCSpot {
-  id: string
-  name: string
-  location: string
-  description: string
-  nfcId: string
-  featured: boolean
-}
-
 // 闹钟类型
 export interface Alarm {
   id: string

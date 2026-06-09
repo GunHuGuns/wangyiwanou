@@ -1,10 +1,12 @@
 'use client'
 
+import { useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/common/page-header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/lib/contexts/auth-context'
 import {
   ChevronRight,
@@ -15,7 +17,7 @@ import {
   Sparkles,
   Cpu,
   LogOut,
-  User,
+  Camera,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -80,13 +82,35 @@ const settingsGroups = [
 ]
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleLogout = () => {
     logout()
     toast.success('已退出登录')
     router.push('/auth')
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('图片不能超过 2MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      updateUser({ avatar: reader.result as string })
+      toast.success('头像已更新')
+    }
+    reader.readAsDataURL(file)
+    // 允许重复选择同一文件
+    e.target.value = ''
   }
 
   return (
@@ -97,14 +121,41 @@ export default function SettingsPage() {
         <div className="max-w-lg mx-auto space-y-6">
           {/* Account card */}
           <Card className="flex items-center gap-4 p-4 border-0 bg-card/80">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-cute-coral flex items-center justify-center">
-              <User className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="relative group flex-shrink-0"
+              aria-label="上传头像"
+            >
+              <Avatar className="w-14 h-14 rounded-2xl">
+                <AvatarImage src={user?.avatar || undefined} alt={user?.username || '用户头像'} />
+                <AvatarFallback className="rounded-2xl bg-gradient-to-br from-primary to-cute-coral text-primary-foreground text-lg font-semibold">
+                  {(user?.username || '小')[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center border-2 border-card">
+                <Camera className="w-3 h-3 text-primary-foreground" />
+              </span>
+            </button>
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold truncate">{user?.username || '小主人'}</h4>
               <p className="text-xs text-muted-foreground truncate">
                 {user?.email || '未登录'}
               </p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-primary mt-1"
+              >
+                更换头像
+              </button>
             </div>
           </Card>
 

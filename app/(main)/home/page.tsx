@@ -50,7 +50,7 @@ const quickActions = [
     icon: Users,
     label: '交朋友',
     color: 'from-cute-lavender to-cute-pink',
-    description: '碰一碰交友',
+    description: '查看玩偶好友',
   },
 ]
 
