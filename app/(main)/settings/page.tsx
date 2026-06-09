@@ -18,6 +18,7 @@ import {
   Cpu,
   LogOut,
   Camera,
+  AudioLines,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -31,6 +32,13 @@ const settingsGroups = [
         label: '角色设置',
         description: '切换或自定义玩偶角色',
         color: 'from-primary to-cute-coral',
+      },
+      {
+        href: '/settings/voice',
+        icon: AudioLines,
+        label: '语音克隆',
+        description: '录制并克隆你的专属音色',
+        color: 'from-cute-pink to-cute-lavender',
       },
       {
         href: '/settings/device',
