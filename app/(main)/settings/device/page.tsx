@@ -221,32 +221,6 @@ export default function DeviceSettingsPage() {
                       {isMuted ? 0 : volume}%
                     </span>
                   </div>
-
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: '静音', value: 0 },
-                      { label: '低', value: 30 },
-                      { label: '中', value: 60 },
-                      { label: '高', value: 100 },
-                    ].map((preset) => (
-                      <Button
-                        key={preset.label}
-                        variant={
-                          volume === preset.value && !isMuted ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        className="rounded-xl"
-                        onClick={() => {
-                          setVolume(preset.value)
-                          setIsMuted(preset.value === 0)
-                          update({ volume: preset.value })
-                          toast.success(`音量已设为${preset.label}`)
-                        }}
-                      >
-                        {preset.label}
-                      </Button>
-                    ))}
-                  </div>
                 </>
               )}
             </Card>
