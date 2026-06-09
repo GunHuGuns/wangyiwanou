@@ -231,6 +231,27 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* 角色切换 */}
+      <div className="px-4 mb-6">
+        <div className="max-w-lg mx-auto">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-1">
+            更多功能
+          </h3>
+          <Card className="border-0 bg-card/80">
+            <Link
+              href="/settings/character"
+              className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors rounded-lg"
+            >
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <span className="flex-1 font-medium">角色切换</span>
+              <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
+            </Link>
+          </Card>
+        </div>
+      </div>
+
       {/* Today's Tip */}
       <div className="px-4 pb-8">
         <div className="max-w-lg mx-auto">
