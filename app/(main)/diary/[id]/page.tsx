@@ -106,10 +106,6 @@ export default function DiaryDetailPage({ params }: DiaryDetailPageProps) {
               <Share2 className="w-4 h-4 mr-2" />
               分享日记
             </Button>
-            <Button className="flex-1 rounded-xl bg-gradient-to-r from-primary to-cute-coral">
-              <Heart className="w-4 h-4 mr-2" />
-              收藏
-            </Button>
           </div>
         </div>
       </div>
