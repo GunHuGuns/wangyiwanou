@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { DeviceStatusBanner } from '@/components/common/device-status-banner'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
   Mic,
   Square,
   Play,
@@ -19,14 +27,22 @@ import {
   Volume2,
   RotateCcw,
   AudioLines,
+  Check,
+  CreditCard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useDevice, isDeviceUsable } from '@/lib/hooks/use-device'
 import {
   useVoiceClone,
+  readVoiceClone,
+  writeVoiceClone,
   MIN_RECORD_SECONDS,
   MAX_RECORD_SECONDS,
+  PRICE_PER_VOICE,
+  CLONES_PER_CYCLE,
+  SUPPORTED_DIALECTS,
+  getRemainingClones,
 } from '@/lib/hooks/use-voice-clone'
 
 // 朗读提示文本，帮助用户录出更稳定的音色
@@ -42,7 +58,7 @@ function formatTime(sec: number) {
 export default function VoiceClonePage() {
   const { device } = useDevice()
   const usable = isDeviceUsable(device)
-  const { voice, loaded, update, reset } = useVoiceClone()
+  const { voice, loaded, update } = useVoiceClone()
 
   // 录音相关
   const [isRecording, setIsRecording] = useState(false)
@@ -52,6 +68,10 @@ export default function VoiceClonePage() {
   const [isCloning, setIsCloning] = useState(false)
   const [cloneProgress, setCloneProgress] = useState(0)
   const [voiceName, setVoiceName] = useState('')
+  const [dialect, setDialect] = useState<string>('普通话')
+  // 付费弹窗
+  const [payOpen, setPayOpen] = useState(false)
+  const [isPaying, setIsPaying] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -61,8 +81,11 @@ export default function VoiceClonePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    if (loaded) setVoiceName(voice.name || '我的声音')
-  }, [loaded, voice.name])
+    if (loaded) {
+      setVoiceName(voice.name || '我的声音')
+      if (voice.dialect) setDialect(voice.dialect)
+    }
+  }, [loaded, voice.name, voice.dialect])
 
   // 清理资源
   useEffect(() => {
@@ -164,15 +187,43 @@ export default function VoiceClonePage() {
     setIsPlaying(false)
   }
 
-  // 模拟 AI 克隆处理过程
+  // 点击「开始克隆」：先校验录音，再判断是否有剩余次数
   const handleClone = () => {
     if (!audioUrl || seconds < MIN_RECORD_SECONDS) {
       toast.error(`请先录制至少 ${MIN_RECORD_SECONDS} 秒的声音`)
       return
     }
+    // 剩余次数不足，需要付费购买新的计费周期
+    if (getRemainingClones(voice) <= 0) {
+      setPayOpen(true)
+      return
+    }
+    runClone()
+  }
+
+  // 付费购买一个计费周期（15 元，含 5 次克隆额度），完成后立即克隆
+  const handlePayAndClone = () => {
+    setIsPaying(true)
+    setTimeout(() => {
+      const current = readVoiceClone()
+      writeVoiceClone({ ...current, paidCycles: current.paidCycles + 1 })
+      setIsPaying(false)
+      setPayOpen(false)
+      toast.success(`支付成功，已获得 ${CLONES_PER_CYCLE} 次克隆额度`)
+      runClone()
+    }, 1200)
+  }
+
+  // 模拟 AI 克隆处理过程
+  const runClone = () => {
     setIsCloning(true)
     setCloneProgress(0)
-    update({ status: 'cloning', durationSec: seconds, name: voiceName.trim() || '我的声音' })
+    update({
+      status: 'cloning',
+      durationSec: seconds,
+      dialect,
+      name: voiceName.trim() || '我的声音',
+    })
 
     const interval = setInterval(() => {
       setCloneProgress((p) => {
@@ -181,11 +232,15 @@ export default function VoiceClonePage() {
           clearInterval(interval)
           setTimeout(() => {
             setIsCloning(false)
-            update({
+            const current = readVoiceClone()
+            writeVoiceClone({
+              ...current,
               status: 'ready',
               applied: true,
               durationSec: seconds,
+              dialect,
               name: voiceName.trim() || '我的声音',
+              cloneCount: current.cloneCount + 1,
               createdAt: new Date().toISOString(),
             })
             toast.success('声音克隆完成，已应用到玩偶发音')
@@ -198,9 +253,10 @@ export default function VoiceClonePage() {
   }
 
   const handleReClone = () => {
-    reset()
+    // 保留已购买的计费周期与已用次数，仅回到录制状态
+    update({ status: 'none', applied: false })
     discardRecording()
-    toast('已清除克隆音色，可重新录制')
+    toast('可重新录制并克隆新音色')
   }
 
   const toggleApply = (checked: boolean) => {
@@ -237,7 +293,8 @@ export default function VoiceClonePage() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    采样时长 {formatTime(voice.durationSec)} · 已克隆专属音色
+                    {voice.dialect} · 采样时长 {formatTime(voice.durationSec)} · 已克隆{' '}
+                    {voice.cloneCount} 次
                   </p>
                 </div>
               </div>
@@ -258,6 +315,10 @@ export default function VoiceClonePage() {
                 <RotateCcw className="w-4 h-4 mr-2" />
                 重新录制克隆
               </Button>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                剩余 {getRemainingClones(voice)} 次克隆额度 · 每个音色{' '}
+                {PRICE_PER_VOICE} 元含 {CLONES_PER_CYCLE} 次
+              </p>
             </Card>
           )}
 
@@ -276,6 +337,27 @@ export default function VoiceClonePage() {
                 </p>
                 <div className="mt-3 p-3 rounded-xl bg-muted/50 text-sm leading-relaxed text-foreground/80">
                   {SAMPLE_TEXT}
+                </div>
+
+                {/* 计费规则 */}
+                <div className="mt-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <CreditCard className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">收费规则</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    每个音色 {PRICE_PER_VOICE} 元，含 {CLONES_PER_CYCLE}{' '}
+                    次克隆额度；超过 {CLONES_PER_CYCLE} 次后，再次按 {PRICE_PER_VOICE}{' '}
+                    元循环计费。
+                  </p>
+                  <div className="flex items-center justify-between mt-2 text-xs">
+                    <span className="text-muted-foreground">
+                      已克隆 {voice.cloneCount} 次
+                    </span>
+                    <span className="font-medium text-primary">
+                      剩余 {getRemainingClones(voice)} 次额度
+                    </span>
+                  </div>
                 </div>
               </Card>
 
@@ -392,12 +474,48 @@ export default function VoiceClonePage() {
                         />
                       </div>
 
+                      {/* 方言 / 语种选择 */}
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1.5 block">
+                          语音方言（仅支持以下方言与语种）
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {SUPPORTED_DIALECTS.map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => setDialect(d)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                                dialect === d
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-muted/50 text-muted-foreground border-transparent hover:border-primary/30'
+                              )}
+                            >
+                              {dialect === d && (
+                                <Check className="w-3 h-3 mr-1 inline-block align-[-1px]" />
+                              )}
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <Button
                         className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90"
                         onClick={handleClone}
                       >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        开始克隆声音
+                        {getRemainingClones(voice) > 0 ? (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            开始克隆声音（剩余 {getRemainingClones(voice)} 次）
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            支付 {PRICE_PER_VOICE} 元并克隆
+                          </>
+                        )}
                       </Button>
                     </div>
                   )}
@@ -413,6 +531,58 @@ export default function VoiceClonePage() {
           )}
         </div>
       </div>
+
+      {/* 付费弹窗 */}
+      <Dialog open={payOpen} onOpenChange={(o) => !isPaying && setPayOpen(o)}>
+        <DialogContent className="max-w-sm rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              购买音色克隆
+            </DialogTitle>
+            <DialogDescription>
+              当前克隆额度已用完，购买一个新的计费周期即可继续克隆。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-2xl bg-muted/50 p-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">音色克隆套餐</span>
+              <span className="font-medium">{CLONES_PER_CYCLE} 次额度</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">方言 / 语种</span>
+              <span className="font-medium">{dialect}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-border pt-2">
+              <span className="text-sm font-medium">应付金额</span>
+              <span className="text-lg font-bold text-primary">
+                ¥{PRICE_PER_VOICE}
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            超过 {CLONES_PER_CYCLE} 次后将按 {PRICE_PER_VOICE} 元循环计费。
+          </p>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90"
+              onClick={handlePayAndClone}
+              disabled={isPaying}
+            >
+              {isPaying ? (
+                '支付处理中…'
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  确认支付 ¥{PRICE_PER_VOICE}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
