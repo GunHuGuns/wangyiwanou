@@ -18,6 +18,7 @@ import {
   LogOut,
   Camera,
   AudioLines,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -25,6 +26,13 @@ const settingsGroups = [
   {
     title: '玩偶设置',
     items: [
+      {
+        href: '/settings/character',
+        icon: Sparkles,
+        label: '角色切换',
+        description: '切换或自定义玩偶角色',
+        color: 'from-primary to-cute-coral',
+      },
       {
         href: '/settings/voice',
         icon: AudioLines,
