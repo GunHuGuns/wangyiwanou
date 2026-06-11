@@ -20,6 +20,7 @@ import {
   AudioLines,
   Sparkles,
   Eye,
+  Languages,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -86,6 +87,13 @@ const settingsGroups = [
   {
     title: '其他',
     items: [
+      {
+        href: '/settings/language',
+        icon: Languages,
+        label: '语言设置',
+        description: '切换应用显示语言',
+        color: 'from-cute-sky to-cute-lavender',
+      },
       {
         href: '/settings/about',
         icon: Info,
