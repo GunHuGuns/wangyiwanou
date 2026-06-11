@@ -19,6 +19,7 @@ import {
   Camera,
   AudioLines,
   Sparkles,
+  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,6 +40,13 @@ const settingsGroups = [
         label: '语音克隆',
         description: '录制并克隆你的专属音色',
         color: 'from-cute-pink to-cute-lavender',
+      },
+      {
+        href: '/settings/eyes',
+        icon: Eye,
+        label: '眼睛显示',
+        description: '设置玩偶眼睛的显示图片',
+        color: 'from-cute-sky to-cute-mint',
       },
       {
         href: '/settings/device',
